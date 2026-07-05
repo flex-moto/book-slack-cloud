@@ -43,3 +43,5 @@ jobs:
             git commit -m "chore: update posted.log [skip ci]"
             git push
           fi
+
+# registered after actions enabled

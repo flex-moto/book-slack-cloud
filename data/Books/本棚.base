@@ -1,0 +1,56 @@
+filters:
+  and:
+    - file.inFolder("Books")
+    - file.folder != "Books/covers"
+views:
+  - type: cards
+    name: 本棚
+    order:
+      - title
+      - author
+      - status
+      - progress
+      - rating
+    sort:
+      - property: title
+        direction: DESC
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+  - type: cards
+    name: 読みたい
+    filters:
+      and:
+        - note.status == "to-read"
+    order:
+      - title
+      - author
+      - rating
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+  - type: cards
+    name: 読書中
+    filters:
+      and:
+        - note.status == "reading"
+    order:
+      - title
+      - author
+      - progress
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+  - type: cards
+    name: 読了
+    filters:
+      and:
+        - note.status == "completed"
+    order:
+      - title
+      - author
+      - rating
+      - endDate
+    image: note.cover
+    imageFit: contain
+    cardSize: 180

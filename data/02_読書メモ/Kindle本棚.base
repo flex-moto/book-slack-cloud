@@ -1,0 +1,13 @@
+filters:
+  and:
+    - file.inFolder("02_読書メモ")
+    - note.imageUrl != null
+views:
+  - type: cards
+    name: Kindle本棚
+    order:
+      - kindle-title
+      - author
+    image: note.imageUrl
+    imageFit: contain
+    cardSize: 160

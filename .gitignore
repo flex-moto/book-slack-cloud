@@ -1,0 +1,5 @@
+# 秘密情報は絶対にコミットしない（キーは GitHub Secrets に保存）
+config.env
+*.env
+__pycache__/
+*.pyc

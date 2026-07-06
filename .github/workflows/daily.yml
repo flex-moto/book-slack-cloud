@@ -2,10 +2,9 @@ name: daily-book-post
 
 on:
   schedule:
-    # 00:30 UTC = 日本時間 09:30。混雑する毎時00分を避けて発火の確実性を上げる。
-    # GitHub のスケジュールはベストエフォートで数分〜十数分遅れることがある（9:30前後に着地する想定）。
-    - cron: "30 0 * * *"
-    - cron: "15 2 * * *"   # ONE-SHOT-TEST 今日11:15 JST の単発テスト（実行後にこの行を自動削除）
+    # 23:00 UTC = 日本時間 08:00。
+    # GitHub のスケジュールはベストエフォートで数分〜十数分遅れることがあるため、8:00過ぎに着地する想定。
+    - cron: "0 23 * * *"
   workflow_dispatch: {}   # 手動実行ボタン（テスト用）
 
 permissions:
@@ -45,17 +44,3 @@ jobs:
             git commit -m "chore: update posted.log [skip ci]"
             git push
           fi
-
-      - name: Remove one-shot test schedule (単発テストを自動で後片付け)
-        if: github.event_name == 'schedule' && github.event.schedule == '15 2 * * *'
-        run: |
-          sed -i '/ONE-SHOT-TEST/d' .github/workflows/daily.yml
-          if [[ -n "$(git status --porcelain .github/workflows/daily.yml)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add .github/workflows/daily.yml
-            git commit -m "chore: remove one-shot test schedule [skip ci]"
-            git push
-          fi
-
-# registered after actions enabled

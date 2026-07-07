@@ -1,11 +1,9 @@
 name: daily-book-post
 
 on:
-  schedule:
-    # 23:00 UTC = 日本時間 08:00。
-    # GitHub のスケジュールはベストエフォートで数分〜十数分遅れることがあるため、8:00過ぎに着地する想定。
-    - cron: "0 23 * * *"
-  workflow_dispatch: {}   # 手動実行ボタン（テスト用）
+  # GitHub の schedule cron は新規アカウント制限で発火しないため撤去。
+  # 定時実行は外部cron(cron-job.org)から workflow_dispatch API を叩いて行う（毎朝8:00 JST）。
+  workflow_dispatch: {}   # 手動実行 / 外部cronからのトリガ用
 
 permissions:
   contents: write          # posted.log をコミットして履歴を残すため

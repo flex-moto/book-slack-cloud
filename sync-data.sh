@@ -3,7 +3,7 @@
 # 使い方: 本を追加した後に  zsh ~/book-slack-cloud/sync-data.sh  を実行するだけ。
 set -e
 
-VAULT="/Users/motomuratakuya/Documents/taku202603"
+VAULT="/Users/motomuratakuya/Desktop/Obsidian Vault"
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
 echo "[sync] 最新データをコピー中..."

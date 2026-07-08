@@ -30,6 +30,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          # 2つ目のワークスペース（例: rechain-inc）。未設定なら1つ目だけに投稿。
+          SLACK_BOT_TOKEN_2: ${{ secrets.SLACK_BOT_TOKEN_2 }}
+          SLACK_CHANNEL_2: ${{ secrets.SLACK_CHANNEL_2 }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-opus-4-8' }}
         run: python post_book.py
 

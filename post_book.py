@@ -6,8 +6,10 @@ AIで紹介コメントを付けて Slack に投稿する。GitHub Actions（Mac
 
 環境変数（GitHub Actions の Secrets などで渡す）:
   ANTHROPIC_API_KEY   … Anthropic API キー（必須）
-  SLACK_BOT_TOKEN     … xoxb- で始まる Bot トークン（必須）
-  SLACK_CHANNEL       … 投稿先チャンネルID（必須。例 C0123ABCD）
+  SLACK_BOT_TOKEN     … 1つ目のワークスペースの xoxb- Bot トークン（必須）
+  SLACK_CHANNEL       … 1つ目の投稿先チャンネルID（必須。例 C0123ABCD）
+  SLACK_BOT_TOKEN_2   … 2つ目のワークスペースの xoxb- Bot トークン（任意。両方揃うと2ワークスペースへ同時投稿）
+  SLACK_CHANNEL_2     … 2つ目の投稿先チャンネルID（任意）
   BOOK_DATA_DIR       … 本データの基点（任意, 既定 ./data）
   BOOK_SUBDIRS        … 走査するサブフォルダ（任意, 既定 "Books,02_読書メモ"）
   ANTHROPIC_MODEL     … 使うモデル（任意, 既定 claude-opus-4-8 / 安いのは claude-haiku-4-5）
@@ -30,9 +32,27 @@ BOT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(BOT_DIR, "posted.log")
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "").strip()
-CHANNEL = os.environ.get("SLACK_CHANNEL", "").strip()
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8").strip()
+
+
+def collect_targets():
+    """投稿先（ワークスペース）を集める。Bot Tokenはワークスペース単位なので
+    (token, channel) を1組=1ワークスペースとして、複数組を許可する。
+
+    ・SLACK_BOT_TOKEN / SLACK_CHANNEL           … 1つ目（例: AI_rechain）
+    ・SLACK_BOT_TOKEN_2 / SLACK_CHANNEL_2       … 2つ目（例: rechain-inc）
+    片方だけ設定されている組は無視する（両方揃って初めて有効）。
+    """
+    targets = []
+    for label, tok_env, ch_env in [
+        ("primary", "SLACK_BOT_TOKEN", "SLACK_CHANNEL"),
+        ("secondary", "SLACK_BOT_TOKEN_2", "SLACK_CHANNEL_2"),
+    ]:
+        token = os.environ.get(tok_env, "").strip()
+        channel = os.environ.get(ch_env, "").strip()
+        if token and channel:
+            targets.append({"label": label, "token": token, "channel": channel})
+    return targets
 
 DATA_DIR = os.environ.get("BOOK_DATA_DIR", os.path.join(BOT_DIR, "data")).strip()
 SUBDIRS = [
@@ -206,13 +226,13 @@ def build_text(b, comment):
     return "\n".join(parts)
 
 
-def slack_api(method, payload):
+def slack_api(method, payload, token):
     req = urllib.request.Request(
         f"https://slack.com/api/{method}",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {BOT_TOKEN}",
+            "Authorization": f"Bearer {token}",
         },
         method="POST",
     )
@@ -223,7 +243,7 @@ def slack_api(method, payload):
     return res
 
 
-def post_text_with_image_url(b, comment, image_url):
+def post_text_with_image_url(b, comment, image_url, token, channel):
     meta = " ".join(x for x in [b["author"], b["publisher"], b["publish_date"]] if x)
     intro = f"*{b['title']}*" + (f"\n{meta}" if meta else "")
     section = {"type": "section", "text": {"type": "mrkdwn", "text": intro}}
@@ -237,10 +257,14 @@ def post_text_with_image_url(b, comment, image_url):
     if b["desc"]:
         short = b["desc"] if len(b["desc"]) <= 280 else b["desc"][:279] + "…"
         blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": f"📖 {short}"}]})
-    slack_api("chat.postMessage", {"channel": CHANNEL, "text": f"📚 今日の一冊: {b['title']}", "blocks": blocks})
+    slack_api(
+        "chat.postMessage",
+        {"channel": channel, "text": f"📚 今日の一冊: {b['title']}", "blocks": blocks},
+        token,
+    )
 
 
-def upload_local_cover(b, comment, png_path):
+def upload_local_cover(b, comment, png_path, token, channel):
     text = build_text(b, comment)
     length = os.path.getsize(png_path)
     data = urllib.parse.urlencode({"filename": f"{b['title']}.png", "length": length}).encode()
@@ -249,7 +273,7 @@ def upload_local_cover(b, comment, png_path):
         data=data,
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": f"Bearer {BOT_TOKEN}",
+            "Authorization": f"Bearer {token}",
         },
         method="POST",
     )
@@ -282,16 +306,35 @@ def upload_local_cover(b, comment, png_path):
         "files.completeUploadExternal",
         {
             "files": [{"id": file_id, "title": b["title"]}],
-            "channel_id": CHANNEL,
+            "channel_id": channel,
             "initial_comment": text,
         },
+        token,
     )
 
 
+def post_to_target(b, comment, png, target):
+    """1つのワークスペースへ投稿する。png はローカル表紙の変換結果（無ければ ""）。"""
+    token, channel, label = target["token"], target["channel"], target["label"]
+    if png:
+        print(f"[info] [{label}] ローカル表紙をアップロードします")
+        upload_local_cover(b, comment, png, token, channel)
+    elif b["remote_cover"]:
+        print(f"[info] [{label}] 公開URLの表紙で投稿します")
+        post_text_with_image_url(b, comment, b["remote_cover"], token, channel)
+    else:
+        print(f"[info] [{label}] 表紙なしでテキスト投稿します")
+        post_text_with_image_url(b, comment, "", token, channel)
+    print(f"[info] [{label}] Slack へ投稿しました")
+
+
 def main():
-    for name, val in [("ANTHROPIC_API_KEY", API_KEY), ("SLACK_BOT_TOKEN", BOT_TOKEN), ("SLACK_CHANNEL", CHANNEL)]:
-        if not val:
-            die(f"{name} が未設定です")
+    if not API_KEY:
+        die("ANTHROPIC_API_KEY が未設定です")
+    targets = collect_targets()
+    if not targets:
+        die("投稿先が未設定です（SLACK_BOT_TOKEN / SLACK_CHANNEL の組が最低1つ必要）")
+    print(f"[info] 投稿先ワークスペース数: {len(targets)}（{', '.join(t['label'] for t in targets)}）")
 
     path = choose_book()
     b = parse_note(path)
@@ -299,24 +342,20 @@ def main():
 
     comment = generate_comment(b["title"], b["author"], b["desc"])
 
+    # 表紙の webp→png 変換は1回だけ。各ワークスペースへは同じpngを個別アップロード。
+    png = ""
     if b["local_cover"]:
         png = webp_to_png(b["local_cover"])
+
+    try:
+        for target in targets:
+            post_to_target(b, comment, png, target)
+    finally:
         if png:
-            print("[info] ローカル表紙をアップロードします")
-            upload_local_cover(b, comment, png)
             try:
                 os.remove(png)
             except OSError:
                 pass
-            print("[info] Slack へ投稿しました")
-            return
-    if b["remote_cover"]:
-        print("[info] 公開URLの表紙で投稿します")
-        post_text_with_image_url(b, comment, b["remote_cover"])
-    else:
-        print("[info] 表紙なしでテキスト投稿します")
-        post_text_with_image_url(b, comment, "")
-    print("[info] Slack へ投稿しました")
 
 
 if __name__ == "__main__":

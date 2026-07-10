@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """data/ 配下の Books と 読書メモ(Kindle) からランダムに1冊選び、
-AIで紹介コメントを付けて Slack に投稿する。GitHub Actions（Mac不要）で毎朝動く。
+AIで紹介コメントを付けて Slack / WeChat に投稿する。GitHub Actions（Mac不要）で毎朝動く。
 
 依存: Pillow（webp→png変換用。ローカルmacOSでは sips でも可）。
 
@@ -10,6 +10,12 @@ AIで紹介コメントを付けて Slack に投稿する。GitHub Actions（Mac
   SLACK_CHANNEL       … 1つ目の投稿先チャンネルID（必須。例 C0123ABCD）
   SLACK_BOT_TOKEN_2   … 2つ目のワークスペースの xoxb- Bot トークン（任意。両方揃うと2ワークスペースへ同時投稿）
   SLACK_CHANNEL_2     … 2つ目の投稿先チャンネルID（任意）
+  NOTIFY_TARGETS      … 通知先（任意, 既定 slack。例: slack,wechat / wechat）
+  WECHAT_PROVIDER     … WeChat通知サービス（任意, 既定 wxpusher。wxpusher / serverchan）
+  WXPUSHER_APP_TOKEN  … WxPusher の appToken（WECHAT_PROVIDER=wxpusher の場合は必須）
+  WXPUSHER_UIDS       … WxPusher の送信先UID（カンマ区切り。任意）
+  WXPUSHER_TOPIC_IDS  … WxPusher の topicId（カンマ区切り。任意）
+  SERVERCHAN_SENDKEY  … ServerChan の SendKey（WECHAT_PROVIDER=serverchan の場合は必須）
   BOOK_DATA_DIR       … 本データの基点（任意, 既定 ./data）
   BOOK_SUBDIRS        … 走査するサブフォルダ（任意, 既定 "Books,02_読書メモ"）
   ANTHROPIC_MODEL     … 使うモデル（任意, 既定 claude-opus-4-8 / 安いのは claude-haiku-4-5）
@@ -35,8 +41,17 @@ API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8").strip()
 
 
-def collect_targets():
-    """投稿先（ワークスペース）を集める。Bot Tokenはワークスペース単位なので
+def parse_csv_env(name):
+    return [s.strip() for s in os.environ.get(name, "").split(",") if s.strip()]
+
+
+def notify_targets():
+    targets = parse_csv_env("NOTIFY_TARGETS") or ["slack"]
+    return {t.lower() for t in targets}
+
+
+def collect_slack_targets():
+    """Slack投稿先（ワークスペース）を集める。Bot Tokenはワークスペース単位なので
     (token, channel) を1組=1ワークスペースとして、複数組を許可する。
 
     ・SLACK_BOT_TOKEN / SLACK_CHANNEL           … 1つ目（例: AI_rechain）
@@ -226,6 +241,99 @@ def build_text(b, comment):
     return "\n".join(parts)
 
 
+def build_plain_text(b, comment):
+    meta = " ".join(x for x in [b["author"], b["publisher"], b["publish_date"]] if x)
+    parts = ["今日の一冊", "", b["title"]]
+    if meta:
+        parts.append(meta)
+    parts += ["", comment]
+    if b["desc"]:
+        short = b["desc"] if len(b["desc"]) <= 280 else b["desc"][:279] + "..."
+        parts += ["", f"概要: {short}"]
+    if b["remote_cover"]:
+        parts += ["", f"表紙: {b['remote_cover']}"]
+    return "\n".join(parts)
+
+
+def post_wxpusher(b, comment):
+    app_token = os.environ.get("WXPUSHER_APP_TOKEN", "").strip()
+    uids = parse_csv_env("WXPUSHER_UIDS")
+    topic_ids = []
+    for raw in parse_csv_env("WXPUSHER_TOPIC_IDS"):
+        try:
+            topic_ids.append(int(raw))
+        except ValueError:
+            die(f"WXPUSHER_TOPIC_IDS は数値のカンマ区切りで指定してください: {raw}")
+    if not app_token:
+        die("WXPUSHER_APP_TOKEN が未設定です")
+    if not uids and not topic_ids:
+        die("WXPUSHER_UIDS または WXPUSHER_TOPIC_IDS のどちらかが必要です")
+
+    payload = {
+        "appToken": app_token,
+        "content": build_plain_text(b, comment),
+        "summary": f"今日の一冊: {b['title']}"[:100],
+        "contentType": 1,
+        "uids": uids,
+        "topicIds": topic_ids,
+    }
+    req = urllib.request.Request(
+        "https://wxpusher.zjiecode.com/api/send/message",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            res = json.load(r)
+    except urllib.error.HTTPError as e:
+        die(f"WxPusher API エラー {e.code}: {e.read().decode('utf-8', 'replace')}")
+    except Exception as e:
+        die(f"WxPusher API 呼び出しに失敗: {e}")
+    if res.get("code") != 1000:
+        die(f"WxPusher 送信失敗: {res}")
+    print("[info] WeChat(WxPusher) へ投稿しました")
+
+
+def post_serverchan(b, comment):
+    sendkey = os.environ.get("SERVERCHAN_SENDKEY", "").strip()
+    if not sendkey:
+        die("SERVERCHAN_SENDKEY が未設定です")
+
+    data = urllib.parse.urlencode(
+        {
+            "title": f"今日の一冊: {b['title']}",
+            "desp": build_plain_text(b, comment),
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://sctapi.ftqq.com/{urllib.parse.quote(sendkey)}.send",
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded; charset=utf-8"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            res = json.load(r)
+    except urllib.error.HTTPError as e:
+        die(f"ServerChan API エラー {e.code}: {e.read().decode('utf-8', 'replace')}")
+    except Exception as e:
+        die(f"ServerChan API 呼び出しに失敗: {e}")
+    if res.get("code") not in (0, 200):
+        die(f"ServerChan 送信失敗: {res}")
+    print("[info] WeChat(ServerChan) へ投稿しました")
+
+
+def post_to_wechat(b, comment):
+    provider = os.environ.get("WECHAT_PROVIDER", "wxpusher").strip().lower()
+    if provider == "wxpusher":
+        post_wxpusher(b, comment)
+    elif provider == "serverchan":
+        post_serverchan(b, comment)
+    else:
+        die(f"未対応の WECHAT_PROVIDER です: {provider}")
+
+
 def slack_api(method, payload, token):
     req = urllib.request.Request(
         f"https://slack.com/api/{method}",
@@ -331,10 +439,19 @@ def post_to_target(b, comment, png, target):
 def main():
     if not API_KEY:
         die("ANTHROPIC_API_KEY が未設定です")
-    targets = collect_targets()
-    if not targets:
-        die("投稿先が未設定です（SLACK_BOT_TOKEN / SLACK_CHANNEL の組が最低1つ必要）")
-    print(f"[info] 投稿先ワークスペース数: {len(targets)}（{', '.join(t['label'] for t in targets)}）")
+    requested_targets = notify_targets()
+    supported_targets = {"slack", "wechat"}
+    unsupported_targets = requested_targets - supported_targets
+    if unsupported_targets:
+        die(f"未対応の NOTIFY_TARGETS です: {', '.join(sorted(unsupported_targets))}")
+
+    slack_targets = collect_slack_targets() if "slack" in requested_targets else []
+    if "slack" in requested_targets and not slack_targets:
+        die("Slack投稿先が未設定です（SLACK_BOT_TOKEN / SLACK_CHANNEL の組が最低1つ必要）")
+    if slack_targets:
+        print(f"[info] Slack投稿先ワークスペース数: {len(slack_targets)}（{', '.join(t['label'] for t in slack_targets)}）")
+    if "wechat" in requested_targets:
+        print(f"[info] WeChat通知を有効化します（provider={os.environ.get('WECHAT_PROVIDER', 'wxpusher').strip().lower()}）")
 
     path = choose_book()
     b = parse_note(path)
@@ -348,8 +465,10 @@ def main():
         png = webp_to_png(b["local_cover"])
 
     try:
-        for target in targets:
+        for target in slack_targets:
             post_to_target(b, comment, png, target)
+        if "wechat" in requested_targets:
+            post_to_wechat(b, comment)
     finally:
         if png:
             try:

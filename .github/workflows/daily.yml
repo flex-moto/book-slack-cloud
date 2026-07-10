@@ -25,14 +25,20 @@ jobs:
       - name: Install Pillow (webp→png)
         run: pip install --quiet pillow
 
-      - name: Post a book to Slack
+      - name: Post a book
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTIFY_TARGETS: ${{ vars.NOTIFY_TARGETS || 'slack' }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
           # 2つ目のワークスペース（例: rechain-inc）。未設定なら1つ目だけに投稿。
           SLACK_BOT_TOKEN_2: ${{ secrets.SLACK_BOT_TOKEN_2 }}
           SLACK_CHANNEL_2: ${{ secrets.SLACK_CHANNEL_2 }}
+          WECHAT_PROVIDER: ${{ vars.WECHAT_PROVIDER || 'wxpusher' }}
+          WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
+          WXPUSHER_UIDS: ${{ secrets.WXPUSHER_UIDS }}
+          WXPUSHER_TOPIC_IDS: ${{ secrets.WXPUSHER_TOPIC_IDS }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-opus-4-8' }}
         run: python post_book.py
 

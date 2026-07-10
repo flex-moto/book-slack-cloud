@@ -5,7 +5,7 @@
 > **なぜ外部cron？** GitHub Actions の `schedule` cron は新規アカウント制限で発火しないため、定時トリガは外部cron（cron-job.org）から `workflow_dispatch` API を叩いて行っています。実際の処理（本選び〜Slack投稿）は従来どおり GitHub Actions 上で動きます。
 
 - 対象データ: `data/Books`（書籍）＋ `data/02_読書メモ`（Kindleなど電子書籍のメモ）
-- ランダムに1冊選び、Claude で紹介コメントを生成して Slack に投稿
+- ランダムに1冊選び、Claude で紹介コメントを生成して Slack / WeChat に投稿
 - 表紙: Books はローカルwebpを変換してアップロード / Kindleメモは Amazon の画像URLをそのまま使用
 - 同じ本の連投を避けるため `posted.log` を毎回コミットして履歴管理（全部投稿し終えると自動リセット）
 
@@ -14,6 +14,34 @@
 - `.github/workflows/daily.yml` … `workflow_dispatch`（手動 / 外部cron からのトリガ用）で起動する GitHub Actions ワークフロー
 - `post_book.py` … 本選び〜投稿の本体
 - APIキー等は GitHub Secrets（`ANTHROPIC_API_KEY` / `SLACK_BOT_TOKEN` / `SLACK_CHANNEL`）に保存。コードには含めない
+
+## WeChat通知
+
+WeChat の個人チャットへ公式APIで直接投稿する仕組みはないため、まずは WeChat 内で受け取れる通知サービスに送ります。対応プロバイダは `WxPusher` と `ServerChan` です。
+
+### WxPusher を使う場合（推奨）
+
+GitHub リポジトリの Settings → Secrets and variables → Actions で次を設定します。
+
+| 種類 | 名前 | 値 |
+|---|---|---|
+| Variable | `NOTIFY_TARGETS` | `wechat`（Slackにも送るなら `slack,wechat`） |
+| Variable | `WECHAT_PROVIDER` | `wxpusher` |
+| Secret | `WXPUSHER_APP_TOKEN` | WxPusher の appToken |
+| Secret | `WXPUSHER_UIDS` | 送信先UID。複数ならカンマ区切り |
+| Secret | `WXPUSHER_TOPIC_IDS` | topicId。UIDで送るなら未設定でOK |
+
+`WXPUSHER_UIDS` と `WXPUSHER_TOPIC_IDS` はどちらか一方が必要です。
+
+### ServerChan を使う場合
+
+| 種類 | 名前 | 値 |
+|---|---|---|
+| Variable | `NOTIFY_TARGETS` | `wechat`（Slackにも送るなら `slack,wechat`） |
+| Variable | `WECHAT_PROVIDER` | `serverchan` |
+| Secret | `SERVERCHAN_SENDKEY` | ServerChan の SendKey |
+
+将来的に特定の友人との個人チャット欄へ投稿したい場合は、`post_book.py` の `post_to_wechat()` に新しい provider を追加すると差し替えられます。ただしその方式は WeChat Desktop の自動操作など非公式ルートになりやすく、常時ログイン端末とアカウント制限リスクの管理が必要です。
 
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:
@@ -28,6 +56,8 @@ zsh ~/book-slack-cloud/sync-data.sh
 | 実行結果を見る | Actions のログ、または `gh run list` / `gh run view` |
 | 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集（現状 毎朝8:00 JST = 23:00 UTC） |
 | モデルを変更 | リポジトリの Settings → Variables に `ANTHROPIC_MODEL`（例 `claude-haiku-4-5`）を追加 |
+| WeChatだけに投稿 | Settings → Variables に `NOTIFY_TARGETS=wechat` を追加 |
+| SlackとWeChatに投稿 | Settings → Variables に `NOTIFY_TARGETS=slack,wechat` を追加 |
 | 投稿履歴をリセット | `posted.log` を空にしてコミット |
 
 ## 注意

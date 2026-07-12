@@ -4,7 +4,7 @@ on:
   # 定時実行は GitHub 純正の schedule cron を主とする（外部cron非依存）。
   # 8:00 JST = 23:00 UTC（前日）。GitHub の schedule は負荷により数分〜十数分遅延することがある。
   schedule:
-    - cron: "0 23 * * *"   # 毎朝 8:00 JST
+    - cron: "10 23 * * *"  # 毎朝 8:10 JST
   workflow_dispatch: {}    # 手動実行 / 予備の外部cronトリガ用
 
 permissions:

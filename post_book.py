@@ -292,6 +292,16 @@ def post_wxpusher(b, comment):
         die(f"WxPusher API 呼び出しに失敗: {e}")
     if res.get("code") != 1000:
         die(f"WxPusher 送信失敗: {res}")
+    data = res.get("data")
+    # data は各宛先への配信結果。公開リポジトリのため uid はログに出さず code/status のみ表示。
+    if isinstance(data, list):
+        summary = [{"code": d.get("code"), "status": d.get("status")} for d in data]
+        print(f"[info] WxPusher応答: 宛先{len(data)}件 {json.dumps(summary, ensure_ascii=False)}")
+        if len(data) == 0:
+            die("WxPusher: 配信対象が0件です。UID が対象アプリ(appToken)を未購読/無効の可能性が高いです。"
+                "WxPusher管理画面で当該UIDの購読状態と appToken との対応を確認してください")
+    else:
+        print(f"[info] WxPusher応答(data): {json.dumps(data, ensure_ascii=False)}")
     print("[info] WeChat(WxPusher) へ投稿しました")
 
 

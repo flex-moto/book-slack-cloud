@@ -5,44 +5,26 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Send test message and query delivery status
+      - name: Identify subscriber
         env:
           WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
           WXPUSHER_UIDS: ${{ secrets.WXPUSHER_UIDS }}
         run: |
           python3 - <<'PY'
-          import os, json, urllib.request, time
+          import os, json, urllib.request
           token=os.environ.get("WXPUSHER_APP_TOKEN","").strip()
-          uids=[u.strip() for u in os.environ.get("WXPUSHER_UIDS","").split(",") if u.strip()]
-          def mask_text(s):
-              s=str(s)
-              for u in uids:
-                  if len(u)>8: s=s.replace(u, u[:4]+"…"+u[-4:])
-              # appToken も念のためマスク
-              if token: s=s.replace(token, "AT_***")
-              return s
-          def POST(url, payload):
-              req=urllib.request.Request(url, data=json.dumps(payload).encode(), headers={"Content-Type":"application/json"}, method="POST")
-              with urllib.request.urlopen(req, timeout=30) as r: return json.load(r)
-          def GET(url):
-              with urllib.request.urlopen(url, timeout=30) as r: return json.load(r)
-
-          payload={"appToken":token,"content":"【配信診断】このメッセージが届くか確認しています。","summary":"配信診断","contentType":1,"uids":uids,"topicIds":[]}
-          send=POST("https://wxpusher.zjiecode.com/api/send/message", payload)
-          print("[diag] SEND応答:", mask_text(json.dumps(send, ensure_ascii=False)))
-
-          data=send.get("data") or []
-          ids=[]
-          if isinstance(data, list):
-              for d in data:
-                  mid=d.get("messageContentId") or d.get("messageId")
-                  if mid: ids.append(mid)
-          print("[diag] messageContentIds:", ids)
-          time.sleep(5)
-          for mid in ids:
-              try:
-                  q=GET(f"https://wxpusher.zjiecode.com/api/send/query?appToken={token}&messageId={mid}")
-                  print(f"[diag] QUERY messageId={mid}:", mask_text(json.dumps(q, ensure_ascii=False)))
-              except Exception as e:
-                  print(f"[diag] QUERY messageId={mid} 失敗:", mask_text(str(e)))
+          cfg=[u.strip() for u in os.environ.get("WXPUSHER_UIDS","").split(",") if u.strip()]
+          url=f"https://wxpusher.zjiecode.com/api/fun/wxuser/v2?appToken={token}&page=1&pageSize=100"
+          with urllib.request.urlopen(url,timeout=30) as r: res=json.load(r)
+          recs=(res.get("data") or {}).get("records") or []
+          def mnick(n):
+              n=n or ""
+              if len(n)<=2: return (n[:1]+"*") if n else "(空)"
+              return n[0]+"*"*(len(n)-2)+n[-1]
+          print(f"[diag] 購読者数: {len(recs)}")
+          for rec in recs:
+              uid=rec.get("uid","")
+              print(f"[diag] uid末尾={uid[-4:]} nick={mnick(rec.get('nickName'))} 登録日時={rec.get('createTime')}")
+          for u in cfg:
+              print(f"[diag] 設定uid末尾={u[-4:]}")
           PY

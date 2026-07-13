@@ -1,11 +1,10 @@
 name: daily-book-post
 
 on:
-  # 定時実行は GitHub 純正の schedule cron を主とする（外部cron非依存）。
-  # 8:00 JST = 23:00 UTC（前日）。GitHub の schedule は負荷により数分〜十数分遅延することがある。
-  schedule:
-    - cron: "10 23 * * *"  # 毎朝 8:10 JST
-  workflow_dispatch: {}    # 手動実行 / 予備の外部cronトリガ用
+  # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
+  # cron-job.org 側で 平日 23:10 UTC（=8:10 JST）に dispatch API を叩く。
+  # GitHub純正 schedule は当リポジトリで発火しない実績があるため使わない（履歴: 90858c6 参照）。
+  workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
 
 permissions:
   contents: write          # posted.log をコミットして履歴を残すため

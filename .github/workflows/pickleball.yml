@@ -1,0 +1,45 @@
+name: pickleball-slot-monitor
+
+on:
+  # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
+  # GitHub純正 schedule は当リポジトリで発火しない実績があるため使わない。
+  # cron-job.org 側で 15分ごと（*/15 * * * *）に dispatch API を叩く。
+  workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
+
+permissions:
+  contents: write          # pickleball_state.json をコミットして状態を残すため
+
+concurrency:
+  group: pickleball-slot-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run monitor
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}   # 任意。未設定なら #reservation
+        run: python monitor.py
+
+      - name: Persist state
+        run: |
+          if [[ -n "$(git status --porcelain pickleball_state.json)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add pickleball_state.json
+            git commit -m "chore: update pickleball slot state [skip ci]"
+            git push
+          fi

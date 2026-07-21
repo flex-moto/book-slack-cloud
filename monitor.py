@@ -3,14 +3,19 @@
 PICKLEBALL ONE GINZA SHIMBASHI コート予約 空き監視スクリプト（常時稼働版）
 
 平日(月〜金)の 19:00 / 20:00 開始の枠について、直近2週間以内の空き状況を
-ヘッドレスブラウザで読み取り、前回状態(state.json)と比較して変化があれば
-Slack Incoming Webhook で通知する。
+予約サイトの内部API(AjaxSearch)から取得し、前回状態(state.json)と比較して
+変化があれば Slack(chat.postMessage) で通知する。
 
-- 空き判定: グリッドセル内のアイコン i.icon-circle = 空き / i.icon-ban = 満席
+方式:
+  予約カレンダーの空き枠は、ページ表示時に POST /AjaxSearch (cmd=get_new_institution)
+  が返す JSON の table_html 内に描画される。ブラウザ(Playwright)を使わず、この API を
+  requests で直接叩いて table_html をパースする（ヘッドレスだと描画されない問題を回避）。
+
+- 空き判定: セル(div.cal-timeline__cell--data)内に i.icon-circle があれば空き
 - 日時取得: セル内 input[type=checkbox] の data-day(YYYYMMDD) と data-sttime(HHMM)
-- 週送り:   a.cal__title__arrow 内の i.icon-arrow-circle-right をクリック
+- 週送り:   レスポンス JSON の target_next_week(YYYY/MM/DD) を次の target_date に使う
 
-依存: playwright  (pip install playwright && playwright install chromium)
+依存: requests
 環境変数:
   SLACK_BOT_TOKEN    (必須) 既存リポジトリと共用。chat.postMessage で投稿
   SLACK_CHANNEL_PB   (任意) 投稿先チャンネルID。未設定なら #reservation の C0BJ3ETJ1H7
@@ -18,15 +23,25 @@ Slack Incoming Webhook で通知する。
 
 import json
 import os
+import re
 import sys
 from datetime import datetime, date
 
-from playwright.sync_api import sync_playwright
+import requests
 
 RESERVE_URL = (
     "https://reserva.be/pboneginza/reserve"
     "?mode=service_staff&search_evt_no=aaeJwzNDQwsbQEAAQoATk"
 )
+AJAX_URL = "https://reserva.be/AjaxSearch"
+RESERVE_BUS_CD = "325310"          # 施設(事業者)コード
+RESERVE_IST_NO = "110499"          # サービス(区画)番号
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
+
 TARGET_TIMES = {"1900", "2000"}   # 19時・20時開始（=19〜21時）
 WINDOW_DAYS = 14                  # 直近2週間
 WEEKS_TO_SCAN = 2                 # 表示週 + 翌週
@@ -34,61 +49,100 @@ STATE_FILE = os.path.join(os.path.dirname(__file__), "pickleball_state.json")
 DEFAULT_CHANNEL = "C0BJ3ETJ1H7"   # #reservation
 WEEKDAYS_JP = ["月", "火", "水", "木", "金", "土", "日"]
 
+_DAY_RE = re.compile(r'data-day="(\d{8})"')
+_ST_RE = re.compile(r'data-sttime="(\d{4})"')
 
-def read_available_from_page(page):
-    """現在表示中の週の、空きセル(data-day, data-sttime)一覧を返す。"""
-    return page.eval_on_selector_all(
-        ".cal-timeline__cell--data",
-        """
-        cells => cells
-          .filter(c => c.querySelector('i.icon-circle'))
-          .map(c => {
-            const cb = c.querySelector('input[type=checkbox]');
-            return cb ? {day: cb.getAttribute('data-day'),
-                        sttime: cb.getAttribute('data-sttime')} : null;
-          })
-          .filter(Boolean)
-        """,
-    )
+
+def _fetch_week(session, target_date):
+    """target_date(YYYY-MM-DD)を含む週の AjaxSearch レスポンス(JSON)を返す。"""
+    body = {
+        "cmd": "get_new_institution",
+        "reserve_bus_cd": RESERVE_BUS_CD,
+        "reserve_ist_no": RESERVE_IST_NO,
+        "target_date": target_date,
+        "mode": "",
+        "month_week": "week",
+        "datetime_max_days": "1",
+        "select_timeorday": "1",
+        "price_type_no": "0",
+    }
+    headers = {
+        "User-Agent": USER_AGENT,
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Referer": RESERVE_URL,
+        "Origin": "https://reserva.be",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "ja,en;q=0.9",
+    }
+    r = session.post(AJAX_URL, data=body, headers=headers, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def _parse_available(table_html):
+    """table_html から空き(icon-circle)セルの (day8, sttime4) 一覧を返す。"""
+    out = []
+    for chunk in re.split(r'(?=<div[^>]*cal-timeline__cell--data)', table_html):
+        if "cal-timeline__cell--data" not in chunk:
+            continue
+        if "icon-circle" not in chunk:      # icon-ban = 満席 はスキップ
+            continue
+        d = _DAY_RE.search(chunk)
+        s = _ST_RE.search(chunk)
+        if d and s:
+            out.append((d.group(1), s.group(1)))
+    return out
 
 
 def scan_availability():
     """2週間ぶんの対象空き枠を 'YYYY-MM-DD HH:MM' の集合で返す。"""
     found = set()
     today = date.today()
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(RESERVE_URL, wait_until="networkidle", timeout=60000)
-        page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)
 
-        for week in range(WEEKS_TO_SCAN):
-            if week > 0:
-                # 翌週へ（右矢印）
-                arrow = page.query_selector(
-                    "a.cal__title__arrow:has(i.icon-arrow-circle-right)"
-                )
-                if not arrow:
-                    break
-                arrow.click()
-                page.wait_for_timeout(1500)
-                page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+    # Cookie 等の取得のため予約ページを一度 GET（任意）
+    try:
+        session.get(RESERVE_URL, timeout=30)
+    except requests.RequestException:
+        pass
 
-            for cell in read_available_from_page(page):
-                day, sttime = cell.get("day"), cell.get("sttime")
-                if not day or not sttime or len(day) != 8:
-                    continue
-                if sttime not in TARGET_TIMES:
-                    continue
-                d = date(int(day[0:4]), int(day[4:6]), int(day[6:8]))
-                # 平日のみ / 直近2週間以内 / 過去でない
-                if d.weekday() >= 5:
-                    continue
-                delta = (d - today).days
-                if delta < 0 or delta > WINDOW_DAYS:
-                    continue
-                found.add(f"{d.isoformat()} {sttime[:2]}:{sttime[2:]}")
-        browser.close()
+    target = today.isoformat()
+    seen_targets = set()
+    total_cells = 0
+    total_avail = 0
+
+    for _ in range(WEEKS_TO_SCAN):
+        data = _fetch_week(session, target)
+        table_html = data.get("table_html", "") or ""
+        total_cells += len(re.findall(r"cal-timeline__cell--data", table_html))
+
+        for day, sttime in _parse_available(table_html):
+            total_avail += 1
+            if len(day) != 8:
+                continue
+            if sttime not in TARGET_TIMES:
+                continue
+            d = date(int(day[0:4]), int(day[4:6]), int(day[6:8]))
+            # 平日のみ / 直近2週間以内 / 過去でない
+            if d.weekday() >= 5:
+                continue
+            delta = (d - today).days
+            if delta < 0 or delta > WINDOW_DAYS:
+                continue
+            found.add(f"{d.isoformat()} {sttime[:2]}:{sttime[2:]}")
+
+        nxt = data.get("target_next_week")   # 'YYYY/MM/DD'
+        if not nxt:
+            break
+        target = nxt.replace("/", "-")
+        if target in seen_targets:
+            break
+        seen_targets.add(target)
+
+    print(f"[{datetime.now()}] scan: cells={total_cells} available={total_avail} "
+          f"target(19/20時・平日・2週間)={sorted(found)}", file=sys.stderr)
     return found
 
 

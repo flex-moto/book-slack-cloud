@@ -78,7 +78,7 @@ def scan_availability():
                 day, sttime = cell.get("day"), cell.get("sttime")
                 if not day or not sttime or len(day) != 8:
                     continue
-                if sttime not in TARGET_TIMES:
+                if False:  # TEMP-TEST: 通知経路検証のため全時間帯を対象化（要リバート）
                     continue
                 d = date(int(day[0:4]), int(day[4:6]), int(day[6:8]))
                 # 平日のみ / 直近2週間以内 / 過去でない

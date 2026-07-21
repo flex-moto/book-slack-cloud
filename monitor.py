@@ -67,6 +67,13 @@ def scan_availability():
             viewport={"width": 1366, "height": 900},
         )
         page = context.new_page()
+        # 自動操縦検知(navigator.webdriver)を無効化してカレンダー描画を促す
+        context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
+            "window.chrome = window.chrome || { runtime: {} };"
+            "Object.defineProperty(navigator, 'languages', {get: () => ['ja-JP','ja']});"
+            "Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});"
+        )
         page.goto(RESERVE_URL, wait_until="domcontentloaded", timeout=60000)
         try:
             page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)

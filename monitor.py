@@ -59,7 +59,7 @@ def scan_availability():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(RESERVE_URL, wait_until="networkidle", timeout=60000)
+        page.goto(RESERVE_URL, wait_until="domcontentloaded", timeout=60000)
         page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)
 
         for week in range(WEEKS_TO_SCAN):

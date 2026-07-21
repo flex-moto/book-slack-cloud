@@ -42,7 +42,7 @@ USER_AGENT = (
     "Chrome/126.0.0.0 Safari/537.36"
 )
 
-TARGET_TIMES = {"1900", "2000", "1300"}   # TEMP-TEST: 検証用に13時を追加（本番は19/20時のみに戻す）
+TARGET_TIMES = {"1900", "2000"}   # 19時・20時開始（=19〜21時）
 WINDOW_DAYS = 14                  # 直近2週間
 WEEKS_TO_SCAN = 2                 # 表示週 + 翌週
 STATE_FILE = os.path.join(os.path.dirname(__file__), "pickleball_state.json")

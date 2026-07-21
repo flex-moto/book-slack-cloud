@@ -58,9 +58,31 @@ def scan_availability():
     today = date.today()
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = browser.new_context(
+            user_agent=("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/126.0.0.0 Safari/537.36"),
+            locale="ja-JP",
+            timezone_id="Asia/Tokyo",
+            viewport={"width": 1366, "height": 900},
+        )
+        page = context.new_page()
         page.goto(RESERVE_URL, wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)
+        try:
+            page.wait_for_selector(".cal-timeline__cell--data", timeout=30000)
+        except Exception:
+            # 診断: CI環境で何が返っているかを確認するための一時ログ
+            try:
+                html = page.content()
+                body = page.inner_text("body")[:1500] if page.query_selector("body") else "(no body)"
+            except Exception as ie:
+                html, body = "", f"(dump failed: {ie})"
+            print(f"[DEBUG] title={page.title()!r} url={page.url!r} "
+                  f"len_html={len(html)} "
+                  f"cells={len(page.query_selector_all('.cal-timeline__cell--data'))}",
+                  file=sys.stderr)
+            print("[DEBUG] body(head1500):\n" + body, file=sys.stderr)
+            raise
 
         for week in range(WEEKS_TO_SCAN):
             if week > 0:

@@ -78,7 +78,14 @@ def _jst_to_utc_iso(d, hour_jst):
 
 def scan_availability():
     """平日19/20時の空き枠を 'YYYY-MM-DD HH:MM' の集合で返す。"""
-    headers = {"User-Agent": USER_AGENT, "Content-Type": "application/json"}
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "ja",
+        "Origin": "https://www.tablecheck.com",
+        "Referer": "https://www.tablecheck.com/",
+    }
     session_ref = str(uuid.uuid4())
     s = requests.Session()
 
@@ -87,10 +94,15 @@ def scan_availability():
                json=_cart_body(session_ref,
                                _jst_to_utc_iso(date.today() + timedelta(days=1), 19), []))
     r.raise_for_status()
-    cart = r.json().get("cart") or {}
+    resp = r.json()
+    cart = resp.get("cart") or {}
     cart_id = cart.get("id") or cart.get("_id")
     if not cart_id:
-        raise RuntimeError(f"cart作成失敗: {list(r.json().keys())}")
+        raise RuntimeError(
+            "cart作成失敗: "
+            f"is_request_enabled={resp.get('is_request_enabled')!r} "
+            f"cart_keys={list(cart.keys())[:12]} "
+            f"validation_errors={cart.get('validation_errors')!r}")
 
     found = set()
     today = date.today()

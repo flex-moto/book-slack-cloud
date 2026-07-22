@@ -10,6 +10,10 @@ on:
         description: '品川チェックの30分ゲートを無視して実行 (1で有効)'
         required: false
         default: ""
+      force_ginza_monthly:
+        description: '銀座・月初開放スキャンのゲートを無視して実行 (1で有効)'
+        required: false
+        default: ""
 
 permissions:
   contents: write          # pickleball_state.json をコミットして状態を残すため
@@ -44,12 +48,19 @@ jobs:
           SHINAGAWA_FORCE: ${{ inputs.force_shinagawa }}
         run: python monitor_shinagawa.py
 
+      - name: Run monthly opening scan (Ginza)
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+          GINZA_MONTHLY_FORCE: ${{ inputs.force_ginza_monthly }}
+        run: python monitor_ginza_monthly.py
+
       - name: Persist state
         run: |
-          if [[ -n "$(git status --porcelain pickleball_state.json pickleball_shinagawa_state.json)" ]]; then
+          if [[ -n "$(git status --porcelain pickleball_state.json pickleball_shinagawa_state.json pickleball_monthly_state.json)" ]]; then
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add pickleball_state.json pickleball_shinagawa_state.json
+            git add pickleball_state.json pickleball_shinagawa_state.json pickleball_monthly_state.json
             git commit -m "chore: update pickleball slot state [skip ci]"
             git push
           fi

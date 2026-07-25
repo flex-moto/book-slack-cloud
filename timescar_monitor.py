@@ -28,6 +28,19 @@
   - 既定ステーション LM25 = 利尻富士観光ホテル駐車場（夏季限定営業 6/1〜10月末）。
     車両: ベーシック／ハスラー(1259165) / ベーシック／ルークス(1202623)。
 
+■ 2026-07-25 の障害調査で判明した追加事実（画面遷移エラーの誤検知）
+  RESERVE_URL へ「いきなり goto()」すると、Cookie自体は有効なままでも
+  invalidTransitError（画面遷移が不正）としてログイン/エラーページ相当に
+  弾かれることがある。これは JSP アプリ側が「マイページ等から辿って来た」
+  という遷移順序（Referer・サーバー側の遷移状態）を要求しているためで、
+  「ログインが切れている」こととは別問題。
+  実際、手動ブラウザで https://share.timescar.jp/view/member/mypage.jsp を
+  直接開いてもログイン状態は維持されており、Cookie自体は生きていた。
+  → 対策: まずマイページを踏んでから、Referer付きで予約ページへ遷移する。
+    それでも invalidTransitError になる場合のみ、もう一度マイページ経由で
+    リトライしてから諦める。LOGIN_HOST へ飛ばされた場合のみを「Cookie失効」
+    と断定し、invalidTransitError は別メッセージで通知する（原因切り分けのため）。
+
 依存: playwright  (pip install playwright && playwright install chromium)
 
 環境変数:
@@ -50,8 +63,9 @@ from datetime import datetime, date
 from playwright.sync_api import sync_playwright
 
 BASE = "https://share.timescar.jp"
-LOGIN_HOST = "api.timesclub.jp"          # ここへ飛ばされたら＝Cookie失効
-ERROR_MARK = "invalidTransitError"       # 遷移切れ
+LOGIN_HOST = "api.timesclub.jp"          # ここへ飛ばされたら＝Cookie失効（真のログイン切れ）
+ERROR_MARK = "invalidTransitError"       # 画面遷移エラー（Cookieは有効な場合がある。要区別）
+MYPAGE_URL = f"{BASE}/view/member/mypage.jsp"  # Cookie有効性の確認・遷移の起点として使う
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), "timescar_state.json")
 DEFAULT_CHANNEL = "C0BJ3ETJ1H7"          # #reservation（ピックルボールと共通）
@@ -78,7 +92,18 @@ RESERVE_URL = f"{BASE}/view/reserve/input.jsp?scd={STATION_CD}&carBaseModelNm=&s
 
 
 class LoginRequired(Exception):
-    pass
+    """Cookie失効 または 画面遷移エラーで空き状況ページへ到達できなかった。
+
+    reason:
+      "cookie_expired"  … LOGIN_HOST へリダイレクトされた（真のログイン切れ）
+      "transit_error"   … invalidTransitError（Cookieは有効な可能性が高い。
+                           マイページ経由でリトライしても解消しなかった場合）
+    """
+
+    def __init__(self, reason="cookie_expired", url=""):
+        super().__init__(reason)
+        self.reason = reason
+        self.url = url
 
 
 # ブラウザ内でタイムテーブルを解析（列カウンタで日時を復元。callback index非依存で堅牢）
@@ -156,9 +181,34 @@ def _mmdd_to_iso(mmdd, base_year, base_month):
 
 
 def _goto_grid(page):
-    page.goto(RESERVE_URL, wait_until="networkidle", timeout=60000)
-    if LOGIN_HOST in page.url or ERROR_MARK in page.url:
-        raise LoginRequired()
+    """マイページ経由で予約ページへ遷移する。
+
+    RESERVE_URL へ直接 goto() すると、Cookieが有効でも「画面遷移が不正」
+    (invalidTransitError) として弾かれることがある（2026-07-25の障害で確認）。
+    これはサーバー側が「マイページ等から辿って来た」という遷移順序・Refererを
+    要求しているためで、ログイン切れとは別問題。そのため:
+      1. まず実際にログイン状態が維持されることを確認済みのマイページを開く
+         （ここで LOGIN_HOST に飛ばされたら、それは正真正銘の Cookie失効）
+      2. マイページを Referer として付けて予約ページへ遷移する
+      3. それでも invalidTransitError になった場合は、もう一度マイページ経由で
+         1回だけリトライする
+    """
+    page.goto(MYPAGE_URL, wait_until="networkidle", timeout=60000)
+    if LOGIN_HOST in page.url:
+        raise LoginRequired("cookie_expired", page.url)
+
+    for attempt in range(2):
+        page.goto(RESERVE_URL, referer=MYPAGE_URL, wait_until="networkidle", timeout=60000)
+        if LOGIN_HOST in page.url:
+            raise LoginRequired("cookie_expired", page.url)
+        if ERROR_MARK in page.url:
+            if attempt == 0:
+                # 画面遷移チェックに弾かれた可能性 → マイページからやり直す
+                page.goto(MYPAGE_URL, wait_until="networkidle", timeout=60000)
+                continue
+            raise LoginRequired("transit_error", page.url)
+        break
+
     page.wait_for_selector("table.time", timeout=30000)
 
 
@@ -171,6 +221,10 @@ def _next_timetable(page):
     if not ok:
         return False
     page.wait_for_load_state("networkidle", timeout=30000)
+    if LOGIN_HOST in page.url:
+        raise LoginRequired("cookie_expired", page.url)
+    if ERROR_MARK in page.url:
+        raise LoginRequired("transit_error", page.url)
     page.wait_for_selector("table.time", timeout=30000)
     return True
 
@@ -295,20 +349,30 @@ def notify_slack(opened, filled):
     _slack_post("\n".join(lines))
 
 
-def notify_cookie_expired():
-    _slack_post(
-        "⚠️ タイムズカーシェア監視: セッションCookieが失効しました。\n"
-        "手動でログインし直し、GitHub Secrets の TIMESCAR_COOKIE を更新してください。"
-    )
+def notify_cookie_expired(reason="cookie_expired", url=""):
+    if reason == "transit_error":
+        _slack_post(
+            "⚠️ タイムズカーシェア監視: 画面遷移エラー(invalidTransitError)が発生しました。\n"
+            "マイページへのアクセスは成功しているため、Cookie自体は有効な可能性があります。\n"
+            "予約ページへの遷移方法（マイページ経由リトライ込み）で解消しなかったので、"
+            "手動で下記を開いて再現するか確認してください。問題が続く場合のみ "
+            "TIMESCAR_COOKIE の更新をお願いします。\n"
+            f"URL: {url or RESERVE_URL}"
+        )
+    else:
+        _slack_post(
+            "⚠️ タイムズカーシェア監視: セッションCookieが失効しました（ログインページへリダイレクト）。\n"
+            "手動でログインし直し、GitHub Secrets の TIMESCAR_COOKIE を更新してください。"
+        )
 
 
 def main():
     try:
         current = scan_availability()
-    except LoginRequired:
-        print(f"[{datetime.now()}] Cookie失効: ログイン/エラーページへ。状態は更新せず通知のみ。",
+    except LoginRequired as e:
+        print(f"[{datetime.now()}] {e.reason}: {e.url or '(url不明)'}。状態は更新せず通知のみ。",
               file=sys.stderr)
-        notify_cookie_expired()
+        notify_cookie_expired(e.reason, e.url)
         sys.exit(0)
     except Exception as e:
         # 取得失敗時は状態を更新せず終了（取りこぼし・誤検知防止）＝monitor.pyと同作法

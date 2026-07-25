@@ -36,12 +36,12 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_TIMESCAR: ${{ secrets.SLACK_CHANNEL_TIMESCAR }}  # 任意。未設定なら #reservation
           TIMESCAR_COOKIE: ${{ secrets.TIMESCAR_COOKIE }}                # 手動ログイン後のセッションCookie
-          # 監視対象の上書き（任意）。未設定ならスクリプト内デフォルト(LM25=利尻富士観光ホテル駐車場)を使用
-          TIMESCAR_STATION: ${{ vars.TIMESCAR_STATION }}          # ステーションコード(scd)
-          TIMESCAR_CARS: ${{ vars.TIMESCAR_CARS }}                # 車両名の一部（カンマ区切り）
-          TIMESCAR_TARGET_DATE: ${{ vars.TIMESCAR_TARGET_DATE }}  # "YYYY-MM-DD"。指定日まで送って監視
-          TIMESCAR_PAGES_AHEAD: ${{ vars.TIMESCAR_PAGES_AHEAD }}  # 近未来監視時の先読み窓数
-          TIMESCAR_TIMES: ${{ vars.TIMESCAR_TIMES }}              # 監視する時台 "HH"（カンマ区切り）
+          # 監視対象の上書き（任意）。未設定ならスクリプト内デフォルト
+          #   station=LM25(利尻富士観光ホテル駐車場) / dates=2026-08-10,08-11 / times=08〜19
+          TIMESCAR_STATION: ${{ vars.TIMESCAR_STATION }}              # ステーションコード(scd)
+          TIMESCAR_CARS: ${{ vars.TIMESCAR_CARS }}                    # 車両名の一部（カンマ区切り）
+          TIMESCAR_TARGET_DATES: ${{ vars.TIMESCAR_TARGET_DATES }}    # 監視対象日 "YYYY-MM-DD" カンマ区切り
+          TIMESCAR_TIMES: ${{ vars.TIMESCAR_TIMES }}                  # 監視する時台 "HH"（カンマ区切り）
         run: python timescar_monitor.py
 
       - name: Persist state

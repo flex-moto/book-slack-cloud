@@ -2,32 +2,31 @@
 """
 タイムズカーシェア 空き監視スクリプト（Cookie再利用版）
 
-指定ステーションのタイムテーブルから「空きあり(水色)」枠を監視し、前回状態
-(timescar_state.json)と比較して新たに空きが出たら Slack へ通知する。
-既存の monitor.py（PICKLEBALL ONE GINZA 監視）と同じ作法・構成を踏襲。
+指定ステーションの指定日（既定: 2026-08-10 / 08-11）・時台（既定: 08〜19時＝8:00〜20:00）
+の「空きあり(水色)」枠を監視し、前回状態(timescar_state.json)と比較して新たに空きが
+出たら Slack へ通知する。既存の monitor.py（PICKLEBALL 監視）と同じ作法・構成を踏襲。
 
 ■ ログイン必須 & reCAPTCHA のため Cookie 再利用方式
-  空き状況ページ(reserve/input.jsp)は会員ログインの内側にあり、ログイン
-  フォームは reCAPTCHA(invisible v2)で保護されているため自動ログインは行わない。
-  代わりに「手動ログイン済みのセッションCookie」を環境変数で受け取り再利用する。
-  Cookie が失効するとログイン/エラーページへ飛ばされるため、その場合は状態を
-  更新せず「Cookie更新が必要」通知のみ出して終了する。
+  空き状況ページ(reserve/input.jsp)は会員ログインの内側にあり、ログインフォームは
+  reCAPTCHA(invisible v2)で保護されているため自動ログインは行わない。代わりに
+  「手動ログイン済みのセッションCookie」を環境変数で受け取り再利用する。Cookieが失効
+  するとログイン/エラーページへ飛ばされるため、その場合は状態を更新せず「Cookie更新が
+  必要」通知のみ出して終了する。
 
 ■ 実DOM調査で確定した事実（2026-07 時点、ログイン済みブラウザで確認）
   - 空き状況ページ直リンク: /view/reserve/input.jsp?scd=<STATION>&carBaseModelNm=&searchFlg=
-    （Cookieさえ有効なら transit エラーなく直接開ける）
-  - 車両ごとに <table class="time">。空き枠セルは td.timelinedot.vacant
-      .vacant      = rgb(102,204,255) 水色 = 空きあり   ← 検知対象
+    （Cookieが有効なら transit エラーなく直接開ける。開いた直後は「現在時刻起点」の窓）
+  - 車両ごとに <table class="time">。1時間=4列(dot,dot,dot,space)、15分刻み。
+    セル状態は class で判定:
+      .vacant      = rgb(102,204,255) 水色 = 空きあり   ← 検知対象（td.timelinedot.vacant）
       .full        = rgb(255,153,160) 満席
       .impossible  = rgb(211,211,211) 予約不可
       .maintenance = rgb(255,242,255) メンテナンス
-  - タイムテーブルは「現在時刻起点の約12時間・15分刻み」の窓。1時間=4列(dot,dot,dot,space)。
-    列の日付は td.time(colspan)、時刻は td.timeline(colspan=4=1時間)から復元。
-  - 日付を進めるには「次のタイムテーブルへ」= JS doSearchNextTimetableJs() を押す（1回=次の窓）。
-    → 遠い将来日(例 2週間先)を狙うと押下回数が多く重い。近未来監視が実用的。
-  - 参考: ステーション例 LM25 = 利尻富士観光ホテル駐車場（夏季限定営業）。
-          車両例 ベーシック／ハスラー(carId 1259165) / ベーシック／ルークス(1202623)。
-          タイムズ本体にも「空き待ち設定」機能あり（別途）。
+  - 1つの窓は「12時間ぶん」。日付は td.time(colspan)、時刻は td.timeline(colspan=4=1時間)で復元。
+  - 日付選択やdoCheckでは窓は動かない。窓を進めるのは「次のタイムテーブルへ」=
+    JS doSearchNextTimetableJs() のみ（1回=12時間前進）。→ 遠い将来日は繰り返し送って到達する。
+  - 既定ステーション LM25 = 利尻富士観光ホテル駐車場（夏季限定営業 6/1〜10月末）。
+    車両: ベーシック／ハスラー(1259165) / ベーシック／ルークス(1202623)。
 
 依存: playwright  (pip install playwright && playwright install chromium)
 
@@ -35,13 +34,11 @@
   SLACK_BOT_TOKEN          (必須) 既存リポジトリと共用。chat.postMessage で投稿
   SLACK_CHANNEL_TIMESCAR   (任意) 投稿先チャンネルID。未設定なら #reservation
   TIMESCAR_COOKIE          (必須) 手動ログイン後のCookie。 "name=value; name2=value2" 形式
-  TIMESCAR_STATION         (任意) ステーションコード(scd)。未設定なら LM25（利尻富士観光ホテル駐車場）
+  TIMESCAR_STATION         (任意) ステーションコード(scd)。未設定なら LM25
   TIMESCAR_CARS            (任意) 監視対象車両名の一部。カンマ区切り。未指定なら全車両
-  TIMESCAR_TARGET_DATE     (任意) "YYYY-MM-DD"。指定するとその日付までタイムテーブルを送って監視。
-                                  未指定なら現在窓（近未来 約12時間）のみ監視（推奨・軽量）。
-  TIMESCAR_PAGES_AHEAD     (任意) TARGET_DATE未指定時に追加で先読みする窓数（既定0）
-  TIMESCAR_MAX_PAGES       (任意) TARGET_DATE到達までに送る最大窓数の上限（既定40）
-  TIMESCAR_TIMES           (任意) 監視対象の時台 "HH" のカンマ区切り。未指定なら全時台
+  TIMESCAR_TARGET_DATES    (任意) 監視対象日 "YYYY-MM-DD" のカンマ区切り。未設定なら 2026-08-10,2026-08-11
+  TIMESCAR_TIMES           (任意) 監視する時台 "HH" のカンマ区切り。未設定なら 08〜19（=8:00〜20:00）
+  TIMESCAR_MAX_PAGES       (任意) タイムテーブルを送る最大回数の上限（既定 60）
   TIMESCAR_DEBUG           (任意) "1" で取得内容を標準出力へダンプし通知しない
 """
 
@@ -52,9 +49,6 @@ from datetime import datetime, date
 
 from playwright.sync_api import sync_playwright
 
-# ─────────────────────────────────────────────────────────────
-# 対象URL / 定数
-# ─────────────────────────────────────────────────────────────
 BASE = "https://share.timescar.jp"
 LOGIN_HOST = "api.timesclub.jp"          # ここへ飛ばされたら＝Cookie失効
 ERROR_MARK = "invalidTransitError"       # 遷移切れ
@@ -65,21 +59,19 @@ COOKIE_URL = BASE
 WEEKDAYS_JP = ["月", "火", "水", "木", "金", "土", "日"]
 
 
-# ─────────────────────────────────────────────────────────────
-# 設定（環境変数で上書き可）
-# ─────────────────────────────────────────────────────────────
 def _envlist(key, default):
     raw = os.environ.get(key, "")
     items = [x.strip() for x in raw.split(",") if x.strip()]
     return items if items else default
 
 
-STATION_CD    = os.environ.get("TIMESCAR_STATION", "LM25").strip() or "LM25"
-TARGET_CARS   = _envlist("TIMESCAR_CARS", [])            # 空=全車両
-TARGET_DATE   = os.environ.get("TIMESCAR_TARGET_DATE", "").strip()   # "YYYY-MM-DD" or ""
-PAGES_AHEAD   = int(os.environ.get("TIMESCAR_PAGES_AHEAD", "0") or 0)
-MAX_PAGES     = int(os.environ.get("TIMESCAR_MAX_PAGES", "40") or 40)
-TARGET_HOURS  = set(_envlist("TIMESCAR_TIMES", []))      # 空=全時台（"HH"）
+# ─── 設定（環境変数で上書き可）。既定はユーザー指定の固定値 ───
+STATION_CD   = os.environ.get("TIMESCAR_STATION", "LM25").strip() or "LM25"
+TARGET_CARS  = _envlist("TIMESCAR_CARS", [])                     # 空=全車両
+TARGET_DATES = _envlist("TIMESCAR_TARGET_DATES", ["2026-08-10", "2026-08-11"])
+# 08〜19時台（19時台=19:00〜20:00）＝利用 8:00〜20:00 をカバー
+TARGET_HOURS = set(_envlist("TIMESCAR_TIMES", [f"{h:02d}" for h in range(8, 20)]))
+MAX_PAGES    = int(os.environ.get("TIMESCAR_MAX_PAGES", "60") or 60)
 DEBUG = os.environ.get("TIMESCAR_DEBUG") == "1"
 
 RESERVE_URL = f"{BASE}/view/reserve/input.jsp?scd={STATION_CD}&carBaseModelNm=&searchFlg="
@@ -89,61 +81,71 @@ class LoginRequired(Exception):
     pass
 
 
-# ─────────────────────────────────────────────────────────────
-# ブラウザ内でタイムテーブルを解析（列ジオメトリから日時を復元）
-#   返り値: [{car, carId, date:"MM月DD日", hour:"HH"} ...]（vacantセルのみ、時台粒度）
-# ─────────────────────────────────────────────────────────────
+# ブラウザ内でタイムテーブルを解析（列カウンタで日時を復元。callback index非依存で堅牢）
+# 返り値: [{car, carId, date:"MM月DD日", hour:"HH"} ...]（vacantセルのみ、時台粒度で重複除去）
 PARSE_JS = r"""
 () => {
-  const out = [];
+  const out = [], seen = new Set();
   const tables = document.querySelectorAll('table.time');
-  tables.forEach(t => {
-    // 車両ID（timelinedot を含む要素のid）と車両ラベル
+  for (let ti = 0; ti < tables.length; ti++) {
+    const t = tables[ti];
     const dot0 = t.querySelector('td.timelinedot');
-    const carId = dot0 ? (dot0.closest('[id]') ? dot0.closest('[id]').id : '') : '';
+    const carId = dot0 && dot0.closest('[id]') ? dot0.closest('[id]').id : '';
     const label = (t.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 40);
 
-    // 日付列（colspan で 48 列に展開）
-    const dateCells = [...t.querySelectorAll('td.time')];
     const dateByCol = [];
-    dateCells.forEach(c => { for (let i = 0; i < (c.colSpan || 1); i++) dateByCol.push(c.textContent.trim()); });
-
-    // 時刻列（colspan=4=1時間 で 48 列に展開）
-    const timeCells = [...t.querySelectorAll('td.timeline')];
+    const dcells = t.querySelectorAll('td.time');
+    for (let a = 0; a < dcells.length; a++) {
+      const n = dcells[a].colSpan || 1;
+      for (let k = 0; k < n; k++) dateByCol.push(dcells[a].textContent.trim());
+    }
     const hourByCol = [];
-    timeCells.forEach(c => {
-      const hh = (c.textContent.trim().match(/(\d{1,2}):/) || [,''])[1];
-      for (let i = 0; i < (c.colSpan || 1); i++) hourByCol.push(hh);
-    });
-
-    // ドット行（timelinedot / timelinespace が並ぶ行）
-    const rows = [...t.rows];
-    const dotRow = rows.find(r => [...r.cells].some(c => /timelinedot|timelinespace/.test(c.className)));
-    if (!dotRow) return;
-    [...dotRow.cells].forEach((c, i) => {
-      if (!/timelinedot/.test(c.className)) return;      // space（区切り）は無視
-      if (!/vacant/.test(c.className)) return;           // 空き(水色)のみ
-      out.push({ car: label, carId: carId, date: dateByCol[i] || '', hour: hourByCol[i] || '' });
-    });
-  });
-  // 時台粒度で重複除去
-  const seen = new Set(), uniq = [];
-  out.forEach(o => { const k = [o.carId, o.date, o.hour].join('|'); if (!seen.has(k)) { seen.add(k); uniq.push(o); } });
-  return uniq;
+    const hcells = t.querySelectorAll('td.timeline');
+    for (let a = 0; a < hcells.length; a++) {
+      const m = hcells[a].textContent.trim().match(/(\d{1,2}):/);
+      const hh = m ? m[1] : '';
+      const n = hcells[a].colSpan || 1;
+      for (let k = 0; k < n; k++) hourByCol.push(hh);
+    }
+    let dotRow = null;
+    const rows = t.rows;
+    for (let a = 0; a < rows.length; a++) {
+      const cs = rows[a].cells;
+      for (let b = 0; b < cs.length; b++) {
+        if (/timelinedot|timelinespace/.test(cs[b].className)) { dotRow = rows[a]; break; }
+      }
+      if (dotRow) break;
+    }
+    if (!dotRow) continue;
+    const cells = dotRow.cells;
+    let col = 0;
+    for (let a = 0; a < cells.length; a++) {
+      const cls = cells[a].className;
+      if (/timelinedot/.test(cls)) {
+        if (/vacant/.test(cls)) {
+          const key = carId + '|' + (dateByCol[col] || '') + '|' + (hourByCol[col] || '');
+          if (!seen.has(key)) {
+            seen.add(key);
+            out.push({ car: label, carId: carId, date: dateByCol[col] || '', hour: hourByCol[col] || '' });
+          }
+        }
+      }
+      col++;
+    }
+  }
+  return out;
 }
 """
 
-# 現在表示中の窓の「最終日付」を "MM月DD日" で取得（TARGET_DATE到達判定用）
-LASTDATE_JS = r"""
-() => {
-  const ds = [...document.querySelectorAll('table.time td.time')].map(c => c.textContent.trim());
-  return ds.length ? ds[ds.length - 1] : '';
-}
-"""
+# 現在窓の最も早い日付 "MM月DD日"（到達判定用）
+EARLIEST_JS = ("() => { const d = [...document.querySelectorAll('table.time td.time')]"
+               ".map(c => c.textContent.trim()); return d.length ? d[0] : ''; }")
 
 
 def _mmdd_to_iso(mmdd, base_year, base_month):
-    """'08月10日' → 'YYYY-MM-DD'。月が基準月より小さければ翌年に繰り上げ。"""
+    """'08月10日' → 'YYYY-MM-DD'。月が基準月より小さければ翌年へ繰り上げ。"""
+    if not mmdd:
+        return None
     m = mmdd.replace("月", "-").replace("日", "")
     try:
         mm, dd = [int(x) for x in m.split("-")]
@@ -161,7 +163,7 @@ def _goto_grid(page):
 
 
 def _next_timetable(page):
-    """「次のタイムテーブルへ」を押して次の窓へ。押せなければ False。"""
+    """「次のタイムテーブルへ」で次の12時間窓へ。押せなければ False。"""
     ok = page.evaluate(
         "() => { if (typeof doSearchNextTimetableJs === 'function') { doSearchNextTimetableJs(); return true; } "
         "const b = document.querySelector('[id$=doSearchNextTimetable]'); if (b) { b.click(); return true; } return false; }"
@@ -173,21 +175,23 @@ def _next_timetable(page):
     return True
 
 
-def _collect(page):
-    """現在窓の vacant を 'car | YYYY-MM-DD HH時' 集合で返す。"""
-    today = date.today()
-    rows = page.evaluate(PARSE_JS)
+def _collect(page, today):
+    """現在窓の vacant を、対象日・対象時台・対象車両で絞って
+    'car | YYYY-MM-DD HH時' 集合で返す。"""
     out = set()
-    for r in rows:
+    for r in page.evaluate(PARSE_JS):
         iso = _mmdd_to_iso(r.get("date", ""), today.year, today.month)
         hour = r.get("hour", "")
+        car = r.get("car", "")
         if not iso or not hour:
+            continue
+        if TARGET_DATES and iso not in TARGET_DATES:
             continue
         if TARGET_HOURS and hour not in TARGET_HOURS:
             continue
-        if TARGET_CARS and not any(c in r.get("car", "") for c in TARGET_CARS):
+        if TARGET_CARS and not any(c in car for c in TARGET_CARS):
             continue
-        out.add(f"{r.get('car','')} | {iso} {hour}時")
+        out.add(f"{car} | {iso} {hour}時")
     return out
 
 
@@ -197,8 +201,10 @@ def scan_availability():
     if not jar:
         raise RuntimeError("TIMESCAR_COOKIE 未設定（手動ログイン後のCookieが必要）")
 
-    found = set()
     today = date.today()
+    max_target = max(TARGET_DATES) if TARGET_DATES else None
+    found = set()
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
@@ -206,33 +212,21 @@ def scan_availability():
         page = context.new_page()
         _goto_grid(page)
 
+        found |= _collect(page, today)
+        pages = 0
+        while max_target and pages < MAX_PAGES:
+            earliest = _mmdd_to_iso(page.evaluate(EARLIEST_JS), today.year, today.month)
+            if earliest and earliest > max_target:
+                break
+            if not _next_timetable(page):
+                break
+            pages += 1
+            found |= _collect(page, today)
+
         if DEBUG:
             print("===== TIMESCAR DEBUG =====")
-            print("URL:", page.url)
-            print("tables:", page.eval_on_selector_all("table.time", "els => els.length"))
-            print("vacant(now):", page.eval_on_selector_all("td.timelinedot.vacant", "els => els.length"))
-            print("parsed(now):", json.dumps(page.evaluate(PARSE_JS), ensure_ascii=False))
-
-        found |= _collect(page)
-
-        if TARGET_DATE:
-            # TARGET_DATE を含む窓まで送る
-            pages = 0
-            while pages < MAX_PAGES:
-                last = _mmdd_to_iso(page.evaluate(LASTDATE_JS), today.year, today.month)
-                if last and last >= TARGET_DATE:
-                    break
-                if not _next_timetable(page):
-                    break
-                pages += 1
-                found |= _collect(page)
-            # TARGET_DATE の枠だけに絞る
-            found = {s for s in found if f" {TARGET_DATE} " in s}
-        else:
-            for _ in range(max(0, PAGES_AHEAD)):
-                if not _next_timetable(page):
-                    break
-                found |= _collect(page)
+            print("URL:", page.url, "| pages sent:", pages)
+            print("collected:", json.dumps(sorted(found), ensure_ascii=False))
 
         browser.close()
     return found
@@ -290,7 +284,7 @@ def _slack_post(text):
 
 
 def notify_slack(opened, filled):
-    lines = ["🚗 タイムズカーシェア 空き枠アラート"]
+    lines = ["🚗 タイムズカーシェア 空き枠アラート（利尻富士観光ホテル駐車場）"]
     if opened:
         lines.append("\n🟢 空きが出ました:")
         lines += [f"・{s}" for s in sorted(opened)]
@@ -322,7 +316,6 @@ def main():
         sys.exit(0)
 
     if DEBUG:
-        print("DEBUG collected:", json.dumps(sorted(current), ensure_ascii=False))
         return
 
     previous = load_previous()

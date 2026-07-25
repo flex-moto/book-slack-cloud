@@ -77,11 +77,14 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 > **⚠️ ピックルボールとの違い＝ログイン必須 & reCAPTCHA**
 > タイムズの空き状況ページはログインの内側にあり、ログインフォームは reCAPTCHA で保護されています。そのため**会員番号＋パスワードによる自動ログインは行いません**（規約・bot検知の観点でも不可）。代わりに、**手動ログイン済みのセッションCookieを再利用**します。Cookieは数時間〜数日で失効するため、失効時は「更新が必要」通知が飛びます。その都度、下記手順でCookieを取り直してください。
 
-- 監視対象: **20分おき（毎時 5 / 25 / 45 分）**に、指定ステーションのタイムテーブルから「空きあり(水色 = `.vacant`)」枠をチェック（車両ごと・日付＋時台の粒度）
-- 仕組み: `timescar_monitor.py` がCookieで空き状況ページ（`/view/reserve/input.jsp?scd=<ステーション>&carBaseModelNm=&searchFlg=`）を取得し、`table.time` 内の `td.timelinedot.vacant` を抽出。前回状態 `timescar_state.json` と比較して**空きが出た／満席に戻った**変化があれば Slack に投稿します
+- 監視対象（既定・固定）: **利尻富士観光ホテル駐車場（`LM25`）** の **2026-08-10 / 08-11**、**8:00〜20:00**（時台 `08`〜`19`）の「空きあり(水色 = `.vacant`)」枠。車両ごと・時台の粒度で判定
+- 頻度: **20分おき（毎時 5 / 25 / 45 分）**
+- 仕組み: `timescar_monitor.py` がCookieで空き状況ページ（`/view/reserve/input.jsp?scd=<ステーション>&carBaseModelNm=&searchFlg=`）を開き、`table.time` 内の `td.timelinedot.vacant` を抽出。前回状態 `timescar_state.json` と比較して**空きが出た／満席に戻った**変化があれば Slack に投稿します
 - ワークフロー: `.github/workflows/timescar.yml`（`workflow_dispatch` ＋保険の `schedule: 5,25,45 * * * *`）。定時実行は外部cron（cron-job.org）から20分おきに `workflow_dispatch` API を叩く想定です
 
-> **📌 タイムテーブルは「現在時刻起点・約12時間・15分刻み」の窓です。** 遠い将来日を狙う場合は「次のタイムテーブルへ」を内部で繰り返し送って到達します（`TIMESCAR_TARGET_DATE`）。日数が離れるほど送り回数が増え重くなるため、**近未来の監視が実用的**です。特定の1日を待つだけなら、タイムズ本体の**「空き待ち設定」**機能も検討してください。
+> **📌 タイムテーブルは「現在時刻起点・12時間・15分刻み」の窓で、日付選択では動かず「次のタイムテーブルへ」で12時間ずつ進む作りです。** そのため対象日（例 2週間先の 08-10/11）に到達するには、実行のたびに窓を数十回送ります（現在日から離れるほど送り回数が増え、当日が近づくほど減ります）。上限は `TIMESCAR_MAX_PAGES`（既定60）。
+>
+> **⚠️ 負荷・規約の注意:** 20分おきに数十回のページ送り＝予約サーバへのアクセスが多く、bot的でありアカウント停止リスクもあります。対象日まで日数がある間は**頻度を落とす**（例: 1時間おき）ことを推奨します。特定の1日を待つだけなら、タイムズ本体の**「空き待ち設定」**機能（車両ごとに設定可）も有力な代替です。
 
 ### 設定（GitHub Secrets / Variables）
 
@@ -92,9 +95,9 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 | Secret | `SLACK_CHANNEL_TIMESCAR` | 任意 | 投稿先チャンネルID。未設定なら `#reservation`（`C0BJ3ETJ1H7`） |
 | Variable | `TIMESCAR_STATION` | 任意 | ステーションコード(`scd`)。未設定なら `LM25`（利尻富士観光ホテル駐車場） |
 | Variable | `TIMESCAR_CARS` | 任意 | 監視対象の車両名の一部（カンマ区切り）。未指定なら全車両（例: `ハスラー,ルークス`） |
-| Variable | `TIMESCAR_TARGET_DATE` | 任意 | `YYYY-MM-DD`。指定するとその日まで送って監視。未指定なら現在窓（近未来）のみ |
-| Variable | `TIMESCAR_PAGES_AHEAD` | 任意 | 近未来監視時に追加で先読みする窓数（既定 `0`） |
-| Variable | `TIMESCAR_TIMES` | 任意 | 監視する時台 `HH` のカンマ区切り（未指定なら全時台。例 `19,20`） |
+| Variable | `TIMESCAR_TARGET_DATES` | 任意 | 監視対象日 `YYYY-MM-DD` のカンマ区切り。未設定なら `2026-08-10,2026-08-11` |
+| Variable | `TIMESCAR_TIMES` | 任意 | 監視する時台 `HH` のカンマ区切り。未設定なら `08`〜`19`（=8:00〜20:00） |
+| Variable | `TIMESCAR_MAX_PAGES` | 任意 | タイムテーブル送りの上限回数（既定 `60`） |
 
 ### Cookieの取り出し方
 
@@ -111,7 +114,7 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 | 状態をリセット | `timescar_state.json` を `[]` にしてコミット |
 | ローカルで試す/内容確認 | `TIMESCAR_COOKIE=... TIMESCAR_DEBUG=1 python timescar_monitor.py` |
 
-> **実DOM確認済み（2026-07）**: 空きセル=`td.timelinedot.vacant`（水色 `rgb(102,204,255)`）、満席=`.full`、予約不可=`.impossible`、メンテ=`.maintenance`。ステーション `LM25` は夏季限定営業（6/1〜10月末）で、車両はベーシック／ハスラー・ルークスの2台。デフォルト値は必要に応じて上表のVariableで変更してください。
+> **実DOM確認済み（2026-07、ログイン済みブラウザ）**: 空きセル=`td.timelinedot.vacant`（水色 `rgb(102,204,255)`）、満席=`.full`、予約不可=`.impossible`、メンテ=`.maintenance`。窓は12時間・15分刻みで「次のタイムテーブルへ」(`doSearchNextTimetableJs`)で12時間ずつ前進。ステーション `LM25` は夏季限定営業（6/1〜10月末）で車両はベーシック／ハスラー(1259165)・ルークス(1202623)の2台。判定は時台粒度（:45開始枠のみの空きは対象外）。既定値は上表のVariableで変更可。
 
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:

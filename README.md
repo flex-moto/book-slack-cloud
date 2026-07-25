@@ -78,13 +78,13 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 > タイムズの空き状況ページはログインの内側にあり、ログインフォームは reCAPTCHA で保護されています。そのため**会員番号＋パスワードによる自動ログインは行いません**（規約・bot検知の観点でも不可）。代わりに、**手動ログイン済みのセッションCookieを再利用**します。Cookieは数時間〜数日で失効するため、失効時は「更新が必要」通知が飛びます。その都度、下記手順でCookieを取り直してください。
 
 - 監視対象（既定・固定）: **利尻富士観光ホテル駐車場（`LM25`）** の **2026-08-10 / 08-11**、**8:00〜20:00**（時台 `08`〜`19`）の「空きあり(水色 = `.vacant`)」枠。車両ごと・時台の粒度で判定
-- 頻度: **20分おき（毎時 5 / 25 / 45 分）**
+- 頻度: **1時間おき（毎時0分）**。ただし**深夜 JST 01:00〜06:00 は停止**（監視は JST 07:00〜翌00:00）。対象日が近づいたら間隔を短くしてもOK
 - 仕組み: `timescar_monitor.py` がCookieで空き状況ページ（`/view/reserve/input.jsp?scd=<ステーション>&carBaseModelNm=&searchFlg=`）を開き、`table.time` 内の `td.timelinedot.vacant` を抽出。前回状態 `timescar_state.json` と比較して**空きが出た／満席に戻った**変化があれば Slack に投稿します
-- ワークフロー: `.github/workflows/timescar.yml`（`workflow_dispatch` ＋保険の `schedule: 5,25,45 * * * *`）。定時実行は外部cron（cron-job.org）から20分おきに `workflow_dispatch` API を叩く想定です
+- ワークフロー: `.github/workflows/timescar.yml`（`workflow_dispatch` ＋保険の `schedule: 0 0-15,22,23 * * *` = UTC基準で JST 07:00〜翌00:00 を毎時）。定時実行は外部cron（cron-job.org）から `workflow_dispatch` API を叩く想定です
 
 > **📌 タイムテーブルは「現在時刻起点・12時間・15分刻み」の窓で、日付選択では動かず「次のタイムテーブルへ」で12時間ずつ進む作りです。** そのため対象日（例 2週間先の 08-10/11）に到達するには、実行のたびに窓を数十回送ります（現在日から離れるほど送り回数が増え、当日が近づくほど減ります）。上限は `TIMESCAR_MAX_PAGES`（既定60）。
 >
-> **⚠️ 負荷・規約の注意:** 20分おきに数十回のページ送り＝予約サーバへのアクセスが多く、bot的でありアカウント停止リスクもあります。対象日まで日数がある間は**頻度を落とす**（例: 1時間おき）ことを推奨します。特定の1日を待つだけなら、タイムズ本体の**「空き待ち設定」**機能（車両ごとに設定可）も有力な代替です。
+> **⚠️ 負荷・規約の注意:** 1回の実行で数十回のページ送り＝予約サーバへのアクセスが発生します。現状は1時間おき＋深夜停止で負荷を抑えていますが、bot的アクセスであることに変わりはなく（アカウント停止リスクもゼロではない）、頻度は必要最小限に留めるのが無難です。特定の1日を待つだけなら、タイムズ本体の**「空き待ち設定」**機能（車両ごとに設定可）も有力な代替です。
 
 ### 設定（GitHub Secrets / Variables）
 
@@ -110,7 +110,7 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 | やりたいこと | 方法 |
 |---|---|
 | 今すぐ空き状況をチェック | Actions → timescar-slot-monitor → Run workflow（または `gh workflow run timescar.yml`） |
-| 監視間隔を変更 | cron-job.org のジョブ、および `timescar.yml` の `schedule` を編集 |
+| 監視間隔・時間帯を変更 | cron-job.org のジョブ、および `timescar.yml` の `schedule`（UTC基準）を編集。深夜停止は UTC 16-21 を除外して表現 |
 | 状態をリセット | `timescar_state.json` を `[]` にしてコミット |
 | ローカルで試す/内容確認 | `TIMESCAR_COOKIE=... TIMESCAR_DEBUG=1 python timescar_monitor.py` |
 

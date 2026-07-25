@@ -1,12 +1,13 @@
 name: timescar-slot-monitor
 
 on:
-  # 20分おき（毎時 5/25/45分）に空き状況をチェック。
-  # GitHub純正 schedule は当リポジトリで発火しない実績があるため、
-  # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
-  # 下の schedule は保険（発火すれば同じ間隔で動く。二重起動は concurrency で抑止）。
+  # 1時間おき（毎時0分）に空き状況をチェック。ただし深夜 JST 01:00〜06:00 は監視しない
+  # （= 監視は JST 07:00〜翌00:00）。cron は UTC 基準（JST = UTC+9）。
+  #   JST 01〜06 時 = UTC 16〜21 時 → その時間帯を除外し、UTC 0-15 と 22-23 で実行。
+  # GitHub純正 schedule は当リポジトリで発火しない実績があるため、定時トリガは
+  # 外部cron（cron-job.org）→ workflow_dispatch を主とする。下の schedule は保険。
   schedule:
-    - cron: "5,25,45 * * * *"
+    - cron: "0 0-15,22,23 * * *"   # 毎時0分 / UTC 0-15,22-23 = JST 07:00〜翌00:00
   workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
 
 permissions:

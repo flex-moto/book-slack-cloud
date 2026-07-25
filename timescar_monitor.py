@@ -46,6 +46,15 @@
   おり、これは正真正銘の Cookie失効（TIMESCAR_COOKIE自体が無効）を意味する。
   こちらと「画面遷移エラー」は原因が別なので、Slack通知でも区別している。
 
+■ 2026-07-25 その後の動作確認で判明: 検索結果一覧の「予約」リンクは
+  target="_blank"（新しいタブで開く）。これを見落として元の page のまま
+  wait_for_selector("table.time") すると、実際の空き状況は新タブ側に
+  描画されるため元の page はいつまでも search/list ページのままとなり、
+  Timeout 30000ms exceeded で失敗する（Cookie失効でもtransit errorでもない
+  3つ目の失敗パターン）。対策として expect_popup() で新タブを捕まえ、
+  _goto_grid() はその新タブの page を返すよう変更し、以降の処理は
+  すべてそちらの page を使う。
+
 依存: playwright  (pip install playwright && playwright install chromium)
 
 環境変数:
@@ -68,6 +77,7 @@ import sys
 from datetime import datetime, date
 
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 BASE = "https://share.timescar.jp"
 LOGIN_HOST = "api.timesclub.jp"          # ここへ飛ばされたら＝Cookie失効（真のログイン切れ）
@@ -202,6 +212,9 @@ def _goto_grid(page):
       2. 「予約」リンク(→ステーション検索ページ)をクリック
       3. ステーション名(STATION_QUERY)で検索
       4. 検索結果一覧から対象ステーション(STATION_CD)の「予約」リンクをクリック
+         （このリンクは target="_blank" のため新しいタブで開く。以降の
+         空き状況スクレイピングはそちらの新タブ側で行う必要があるため、
+         この関数は最終的に操作対象となる page を返す）
     という手順を踏む必要がある。
     """
     page.goto(BASE, wait_until="networkidle", timeout=60000)
@@ -226,13 +239,28 @@ def _goto_grid(page):
         # ステーション名検索がヒットしなかった場合のフォールバック:
         # 検索結果一覧内の最初の「予約」リンクを使う
         reserve_link = page.get_by_role("link", name="予約").first
-    reserve_link.click()
-    page.wait_for_load_state("networkidle", timeout=30000)
-    _check_not_login_redirect(page)
-    if ERROR_MARK in page.url:
-        raise LoginRequired("transit_error", page.url)
 
-    page.wait_for_selector("table.time", timeout=30000)
+    # 検索結果一覧の「予約」リンクは target="_blank"（新しいタブで開く）。
+    # 2026-07-25 の動作確認で判明: これを見落として同じ page のまま
+    # wait_for_selector("table.time") すると、実際の空き状況は新しいタブ側で
+    # 開くため元の page はいつまでも search/list ページのままでタイムアウトする。
+    # そのため expect_popup() で新タブを捕まえ、以降はそちらを使う。
+    try:
+        with page.expect_popup(timeout=10000) as popup_info:
+            reserve_link.click()
+        grid_page = popup_info.value
+    except PlaywrightTimeoutError:
+        # 新しいタブが開かなかった場合（サイト側の挙動が変わった等）は
+        # 同じ page のまま遷移したとみなすフォールバック
+        grid_page = page
+
+    grid_page.wait_for_load_state("networkidle", timeout=30000)
+    _check_not_login_redirect(grid_page)
+    if ERROR_MARK in grid_page.url:
+        raise LoginRequired("transit_error", grid_page.url)
+
+    grid_page.wait_for_selector("table.time", timeout=30000)
+    return grid_page
 
 
 def _next_timetable(page):
@@ -286,7 +314,7 @@ def scan_availability():
         context = browser.new_context()
         context.add_cookies(jar)
         page = context.new_page()
-        _goto_grid(page)
+        page = _goto_grid(page)  # 「予約」リンクが新タブを開くため、以降は返り値のpageを使う
 
         found |= _collect(page, today)
         pages = 0

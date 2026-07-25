@@ -1,0 +1,54 @@
+name: timescar-slot-monitor
+
+on:
+  # 20分おき（毎時 5/25/45分）に空き状況をチェック。
+  # GitHub純正 schedule は当リポジトリで発火しない実績があるため、
+  # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
+  # 下の schedule は保険（発火すれば同じ間隔で動く。二重起動は concurrency で抑止）。
+  schedule:
+    - cron: "5,25,45 * * * *"
+  workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
+
+permissions:
+  contents: write          # timescar_state.json をコミットして状態を残すため
+
+concurrency:
+  group: timescar-slot-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run monitor
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_TIMESCAR: ${{ secrets.SLACK_CHANNEL_TIMESCAR }}  # 任意。未設定なら #reservation
+          TIMESCAR_COOKIE: ${{ secrets.TIMESCAR_COOKIE }}                # 手動ログイン後のセッションCookie
+          # 監視対象の上書き（任意）。未設定ならスクリプト内デフォルト（要確認）を使用
+          TIMESCAR_STATION: ${{ vars.TIMESCAR_STATION }}
+          TIMESCAR_DATES: ${{ vars.TIMESCAR_DATES }}
+          TIMESCAR_TIMES: ${{ vars.TIMESCAR_TIMES }}
+          TIMESCAR_CLASSES: ${{ vars.TIMESCAR_CLASSES }}
+        run: python timescar_monitor.py
+
+      - name: Persist state
+        run: |
+          if [[ -n "$(git status --porcelain timescar_state.json)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add timescar_state.json
+            git commit -m "chore: update timescar slot state [skip ci]"
+            git push
+          fi

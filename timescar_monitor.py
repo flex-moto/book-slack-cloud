@@ -70,7 +70,17 @@
   TIMESCAR_TARGET_DATES    (任意) 監視対象日 "YYYY-MM-DD" のカンマ区切り。未設定なら 2026-08-10,2026-08-11
   TIMESCAR_TIMES           (任意) 監視する時台 "HH" のカンマ区切り。未設定なら 08〜19（=8:00〜20:00）
   TIMESCAR_MAX_PAGES       (任意) タイムテーブルを送る最大回数の上限（既定 60）
+  TIMESCAR_MAX_COOKIE_NOTICES (任意) Cookie失効/画面遷移エラーの通知上限回数（既定 3）。
+                           連続して同じ種類のエラーが起きた場合、この回数までは
+                           Slack通知するが、それ以降はCookieが更新され成功するまで
+                           通知しない（実行自体・state記録は継続する）。
   TIMESCAR_DEBUG           (任意) "1" で取得内容を標準出力へダンプし通知しない
+
+■ 2026-07-25 追加: Cookie失効時のSlack通知が連続で何度も飛んで鬱陶しいという
+  要望を受け、timescar_state.json に連続失敗回数(reason別)を記録するように
+  変更。TIMESCAR_MAX_COOKIE_NOTICES(既定3)回まではこれまで通り通知し、それを
+  超えたら「Cookie更新→次回成功」するまで通知を止める。成功した回でカウンタは
+  自動的にリセットされる。
 """
 
 import json
@@ -360,17 +370,57 @@ def cookies_from_env():
     return jar
 
 
-def load_previous():
+def _load_state_raw():
     try:
         with open(STATE_FILE, encoding="utf-8") as f:
-            return set(json.load(f))
+            data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return set()
+        data = None
+    # 旧形式（空き枠のリストそのもの）と新形式（dict）の両方に対応
+    if isinstance(data, list):
+        return {"slots": data, "cookie_expired_streak": {}}
+    if isinstance(data, dict):
+        data.setdefault("slots", [])
+        data.setdefault("cookie_expired_streak", {})
+        return data
+    return {"slots": [], "cookie_expired_streak": {}}
 
 
-def save_state(slots):
+def load_previous():
+    return set(_load_state_raw()["slots"])
+
+
+def save_state(slots, cookie_expired_streak=None):
+    state = _load_state_raw()
+    state["slots"] = sorted(slots)
+    if cookie_expired_streak is not None:
+        state["cookie_expired_streak"] = cookie_expired_streak
     with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(sorted(slots), f, ensure_ascii=False, indent=1)
+        json.dump(state, f, ensure_ascii=False, indent=1)
+
+
+def _bump_and_should_notify(reason, max_notices=3):
+    """同じ reason (cookie_expired / transit_error) が連続何回失敗したかを
+    state ファイルに記録し、連続 max_notices 回までは通知し、それ以降は
+    通知せず記録のみ更新する（Cookie更新するまで延々とSlackが鳴り続けるのを防ぐ）。
+    戻り値: (通知すべきか, 現在の連続回数)
+    """
+    state = _load_state_raw()
+    streak = state.get("cookie_expired_streak", {})
+    count = int(streak.get(reason, 0)) + 1
+    streak[reason] = count
+    state["cookie_expired_streak"] = streak
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=1)
+    return count <= max_notices, count
+
+
+def _reset_cookie_expired_streak():
+    state = _load_state_raw()
+    if state.get("cookie_expired_streak"):
+        state["cookie_expired_streak"] = {}
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=1)
 
 
 def _slack_post(text):
@@ -408,34 +458,53 @@ def notify_slack(opened, filled):
     _slack_post("\n".join(lines))
 
 
-def notify_cookie_expired(reason="cookie_expired", url=""):
+def notify_cookie_expired(reason="cookie_expired", url="", streak=1, max_notices=3):
+    suffix = ""
+    if streak >= max_notices:
+        suffix = (
+            f"\n\n（この通知は連続{max_notices}回目です。Cookieが更新されるまで、"
+            "以降の同じ種類のエラーではこれ以上通知しません。実行自体は今まで通り"
+            "続けます。Cookie更新後、次回成功すれば自動的に通知は再開されます。）"
+        )
     if reason == "transit_error":
         _slack_post(
             "⚠️ タイムズカーシェア監視: 画面遷移エラー(invalidTransitError)が発生しました。\n"
             "トップページへのアクセスは成功しているため、Cookie自体は有効な可能性があります。\n"
             "ステーション検索経由での遷移でも解消しなかったので、サイト側の画面構成が"
             "変わった可能性があります。手動で下記を開いて再現するか確認してください。\n"
-            f"URL: {url or RESERVE_URL}"
+            f"URL: {url or RESERVE_URL}{suffix}"
         )
     else:
         _slack_post(
             "⚠️ タイムズカーシェア監視: セッションCookieが失効しました（ログインページへリダイレクト）。\n"
             "手動でログインし直し、GitHub Secrets の TIMESCAR_COOKIE を更新してください。"
+            f"{suffix}"
         )
+
+
+MAX_COOKIE_NOTICES = int(os.environ.get("TIMESCAR_MAX_COOKIE_NOTICES", "3") or 3)
 
 
 def main():
     try:
         current = scan_availability()
     except LoginRequired as e:
-        print(f"[{datetime.now()}] {e.reason}: {e.url or '(url不明)'}。状態は更新せず通知のみ。",
-              file=sys.stderr)
-        notify_cookie_expired(e.reason, e.url)
+        should_notify, streak = _bump_and_should_notify(e.reason, MAX_COOKIE_NOTICES)
+        print(
+            f"[{datetime.now()}] {e.reason}: {e.url or '(url不明)'}。状態は更新せず"
+            f"{'通知' if should_notify else '通知スキップ(連続' + str(streak) + '回目、上限到達済み)'}のみ。",
+            file=sys.stderr,
+        )
+        if should_notify:
+            notify_cookie_expired(e.reason, e.url, streak=streak, max_notices=MAX_COOKIE_NOTICES)
         sys.exit(0)
     except Exception as e:
         # 取得失敗時は状態を更新せず終了（取りこぼし・誤検知防止）＝monitor.pyと同作法
         print(f"[{datetime.now()}] 取得失敗のため通知・記録をスキップ: {e}", file=sys.stderr)
         sys.exit(0)
+
+    # ここまで来た＝Cookie/画面遷移とも正常に完走できた。連続失敗カウントをリセット。
+    _reset_cookie_expired_streak()
 
     if DEBUG:
         return

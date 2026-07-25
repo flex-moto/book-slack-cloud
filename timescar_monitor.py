@@ -28,18 +28,23 @@
   - 既定ステーション LM25 = 利尻富士観光ホテル駐車場（夏季限定営業 6/1〜10月末）。
     車両: ベーシック／ハスラー(1259165) / ベーシック／ルークス(1202623)。
 
-■ 2026-07-25 の障害調査で判明した追加事実（画面遷移エラーの誤検知）
-  RESERVE_URL へ「いきなり goto()」すると、Cookie自体は有効なままでも
-  invalidTransitError（画面遷移が不正）としてログイン/エラーページ相当に
-  弾かれることがある。これは JSP アプリ側が「マイページ等から辿って来た」
-  という遷移順序（Referer・サーバー側の遷移状態）を要求しているためで、
-  「ログインが切れている」こととは別問題。
-  実際、手動ブラウザで https://share.timescar.jp/view/member/mypage.jsp を
-  直接開いてもログイン状態は維持されており、Cookie自体は生きていた。
-  → 対策: まずマイページを踏んでから、Referer付きで予約ページへ遷移する。
-    それでも invalidTransitError になる場合のみ、もう一度マイページ経由で
-    リトライしてから諦める。LOGIN_HOST へ飛ばされた場合のみを「Cookie失効」
-    と断定し、invalidTransitError は別メッセージで通知する（原因切り分けのため）。
+■ 2026-07-25 の障害調査で判明した追加事実（画面遷移エラーの真因）
+  RESERVE_URL(/view/reserve/input.jsp?scd=...) は「直リンク」では開けない。
+  これは実際にログイン中の通常ブラウザで再現確認した事実で、Cookieの
+  有効/無効に関係なく、直接そのURLを開くと「有効期限切れ」エラーになる。
+  一方 https://share.timescar.jp/（トップページ）や
+  /view/member/mypage.jsp は直リンクで開いても問題なくログイン状態が
+  維持される。つまり reserve/input.jsp だけが、実際に
+    トップページ → 「予約」リンク(→ステーション検索) → ステーション名で検索
+    → 検索結果一覧の対象ステーションの「予約」リンクをクリック
+  という一連のクリックを経由しないと開けない（サーバー側が検索条件などの
+  遷移状態をセッションに積んでから初めて空き状況を描画する作りだと推測される）。
+  以前のバージョンは「マイページを経由すれば直リンクでも通る」という誤った
+  前提で書かれていたが、実ブラウザでの再現テストでこれは誤りと判明したため、
+  Playwrightでも上記のクリックの連なりを忠実に再現するよう変更した。
+  なお LOGIN_HOST へのリダイレクトは今回のトップページ直アクセスでも発生して
+  おり、これは正真正銘の Cookie失効（TIMESCAR_COOKIE自体が無効）を意味する。
+  こちらと「画面遷移エラー」は原因が別なので、Slack通知でも区別している。
 
 依存: playwright  (pip install playwright && playwright install chromium)
 
@@ -48,6 +53,8 @@
   SLACK_CHANNEL_TIMESCAR   (任意) 投稿先チャンネルID。未設定なら #reservation
   TIMESCAR_COOKIE          (必須) 手動ログイン後のCookie。 "name=value; name2=value2" 形式
   TIMESCAR_STATION         (任意) ステーションコード(scd)。未設定なら LM25
+  TIMESCAR_STATION_QUERY   (任意) ステーション名検索で使うキーワード。未設定なら「利尻富士観光ホテル」
+                           （TIMESCAR_STATIONを変えたらこちらも対応する名前に変更すること）
   TIMESCAR_CARS            (任意) 監視対象車両名の一部。カンマ区切り。未指定なら全車両
   TIMESCAR_TARGET_DATES    (任意) 監視対象日 "YYYY-MM-DD" のカンマ区切り。未設定なら 2026-08-10,2026-08-11
   TIMESCAR_TIMES           (任意) 監視する時台 "HH" のカンマ区切り。未設定なら 08〜19（=8:00〜20:00）
@@ -64,8 +71,8 @@ from playwright.sync_api import sync_playwright
 
 BASE = "https://share.timescar.jp"
 LOGIN_HOST = "api.timesclub.jp"          # ここへ飛ばされたら＝Cookie失効（真のログイン切れ）
-ERROR_MARK = "invalidTransitError"       # 画面遷移エラー（Cookieは有効な場合がある。要区別）
-MYPAGE_URL = f"{BASE}/view/member/mypage.jsp"  # Cookie有効性の確認・遷移の起点として使う
+ERROR_MARK = "invalidTransitError"       # 画面遷移エラー（直リンクで発生。Cookieとは別問題）
+STATION_SEARCH_URL = f"{BASE}/view/station/search.jsp"
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), "timescar_state.json")
 DEFAULT_CHANNEL = "C0BJ3ETJ1H7"          # #reservation（ピックルボールと共通）
@@ -80,7 +87,8 @@ def _envlist(key, default):
 
 
 # ─── 設定（環境変数で上書き可）。既定はユーザー指定の固定値 ───
-STATION_CD   = os.environ.get("TIMESCAR_STATION", "LM25").strip() or "LM25"
+STATION_CD    = os.environ.get("TIMESCAR_STATION", "LM25").strip() or "LM25"
+STATION_QUERY = os.environ.get("TIMESCAR_STATION_QUERY", "利尻富士観光ホテル").strip() or "利尻富士観光ホテル"
 TARGET_CARS  = _envlist("TIMESCAR_CARS", [])                     # 空=全車両
 TARGET_DATES = _envlist("TIMESCAR_TARGET_DATES", ["2026-08-10", "2026-08-11"])
 # 08〜19時台（19時台=19:00〜20:00）＝利用 8:00〜20:00 をカバー
@@ -180,34 +188,49 @@ def _mmdd_to_iso(mmdd, base_year, base_month):
     return date(year, mm, dd).isoformat()
 
 
-def _goto_grid(page):
-    """マイページ経由で予約ページへ遷移する。
-
-    RESERVE_URL へ直接 goto() すると、Cookieが有効でも「画面遷移が不正」
-    (invalidTransitError) として弾かれることがある（2026-07-25の障害で確認）。
-    これはサーバー側が「マイページ等から辿って来た」という遷移順序・Refererを
-    要求しているためで、ログイン切れとは別問題。そのため:
-      1. まず実際にログイン状態が維持されることを確認済みのマイページを開く
-         （ここで LOGIN_HOST に飛ばされたら、それは正真正銘の Cookie失効）
-      2. マイページを Referer として付けて予約ページへ遷移する
-      3. それでも invalidTransitError になった場合は、もう一度マイページ経由で
-         1回だけリトライする
-    """
-    page.goto(MYPAGE_URL, wait_until="networkidle", timeout=60000)
+def _check_not_login_redirect(page):
     if LOGIN_HOST in page.url:
         raise LoginRequired("cookie_expired", page.url)
 
-    for attempt in range(2):
-        page.goto(RESERVE_URL, referer=MYPAGE_URL, wait_until="networkidle", timeout=60000)
-        if LOGIN_HOST in page.url:
-            raise LoginRequired("cookie_expired", page.url)
-        if ERROR_MARK in page.url:
-            if attempt == 0:
-                # 画面遷移チェックに弾かれた可能性 → マイページからやり直す
-                page.goto(MYPAGE_URL, wait_until="networkidle", timeout=60000)
-                continue
-            raise LoginRequired("transit_error", page.url)
-        break
+
+def _goto_grid(page):
+    """トップページから実際にクリックを辿って予約ページへ遷移する。
+
+    reserve/input.jsp は直リンクでは開けない（実ブラウザでも「有効期限切れ」に
+    なることを確認済み）。開くには実際に:
+      1. トップページ(BASE)を開く（ここで LOGIN_HOST に飛べば真のCookie失効）
+      2. 「予約」リンク(→ステーション検索ページ)をクリック
+      3. ステーション名(STATION_QUERY)で検索
+      4. 検索結果一覧から対象ステーション(STATION_CD)の「予約」リンクをクリック
+    という手順を踏む必要がある。
+    """
+    page.goto(BASE, wait_until="networkidle", timeout=60000)
+    _check_not_login_redirect(page)
+
+    page.locator(f"a[href='/view/station/search.jsp']").first.click()
+    page.wait_for_load_state("networkidle", timeout=30000)
+    _check_not_login_redirect(page)
+    if ERROR_MARK in page.url:
+        raise LoginRequired("transit_error", page.url)
+
+    page.check("#stationNm")
+    page.fill("#nameAdr-s", STATION_QUERY)
+    page.locator("#doNameAdrSearch").first.click()
+    page.wait_for_load_state("networkidle", timeout=30000)
+    _check_not_login_redirect(page)
+    if ERROR_MARK in page.url:
+        raise LoginRequired("transit_error", page.url)
+
+    reserve_link = page.locator(f"a[href*='scd={STATION_CD}']").first
+    if reserve_link.count() == 0:
+        # ステーション名検索がヒットしなかった場合のフォールバック:
+        # 検索結果一覧内の最初の「予約」リンクを使う
+        reserve_link = page.get_by_role("link", name="予約").first
+    reserve_link.click()
+    page.wait_for_load_state("networkidle", timeout=30000)
+    _check_not_login_redirect(page)
+    if ERROR_MARK in page.url:
+        raise LoginRequired("transit_error", page.url)
 
     page.wait_for_selector("table.time", timeout=30000)
 
@@ -221,8 +244,7 @@ def _next_timetable(page):
     if not ok:
         return False
     page.wait_for_load_state("networkidle", timeout=30000)
-    if LOGIN_HOST in page.url:
-        raise LoginRequired("cookie_expired", page.url)
+    _check_not_login_redirect(page)
     if ERROR_MARK in page.url:
         raise LoginRequired("transit_error", page.url)
     page.wait_for_selector("table.time", timeout=30000)
@@ -353,10 +375,9 @@ def notify_cookie_expired(reason="cookie_expired", url=""):
     if reason == "transit_error":
         _slack_post(
             "⚠️ タイムズカーシェア監視: 画面遷移エラー(invalidTransitError)が発生しました。\n"
-            "マイページへのアクセスは成功しているため、Cookie自体は有効な可能性があります。\n"
-            "予約ページへの遷移方法（マイページ経由リトライ込み）で解消しなかったので、"
-            "手動で下記を開いて再現するか確認してください。問題が続く場合のみ "
-            "TIMESCAR_COOKIE の更新をお願いします。\n"
+            "トップページへのアクセスは成功しているため、Cookie自体は有効な可能性があります。\n"
+            "ステーション検索経由での遷移でも解消しなかったので、サイト側の画面構成が"
+            "変わった可能性があります。手動で下記を開いて再現するか確認してください。\n"
             f"URL: {url or RESERVE_URL}"
         )
     else:

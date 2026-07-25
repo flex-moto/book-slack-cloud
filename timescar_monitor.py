@@ -46,14 +46,16 @@
   おり、これは正真正銘の Cookie失効（TIMESCAR_COOKIE自体が無効）を意味する。
   こちらと「画面遷移エラー」は原因が別なので、Slack通知でも区別している。
 
-■ 2026-07-25 その後の動作確認で判明: 検索結果一覧の「予約」リンクは
-  target="_blank"（新しいタブで開く）。これを見落として元の page のまま
-  wait_for_selector("table.time") すると、実際の空き状況は新タブ側に
-  描画されるため元の page はいつまでも search/list ページのままとなり、
-  Timeout 30000ms exceeded で失敗する（Cookie失効でもtransit errorでもない
-  3つ目の失敗パターン）。対策として expect_popup() で新タブを捕まえ、
-  _goto_grid() はその新タブの page を返すよう変更し、以降の処理は
-  すべてそちらの page を使う。
+■ 2026-07-25 その後の動作確認で判明（訂正）: 検索結果一覧の行には
+  「詳細」「周辺地図」「予約」の3つのリンクがあり、いずれも href に
+  scd=<STATION_CD> を含む。旧コードの a[href*='scd=...'] という選び方
+  では DOM 上先頭の「詳細」リンク（target="_blank"）を誤って掴んでしまい、
+  新タブは開くもののそこは「詳細」ページで table.time が存在せず
+  Timeout 30000ms exceeded になっていた（一見 target=_blank が原因の
+  ように見えたが、真因はリンクの取り違え）。実際に本文中の「予約」リンク
+  は img alt="予約" を持ち href に input.jsp を含み、target属性は無い
+  （同じタブ内で遷移する）。これで一意に選ぶよう修正し、popup監視は
+  サイト仕様が変わった場合の保険として短いタイムアウトで残した。
 
 依存: playwright  (pip install playwright && playwright install chromium)
 
@@ -234,24 +236,31 @@ def _goto_grid(page):
     if ERROR_MARK in page.url:
         raise LoginRequired("transit_error", page.url)
 
-    reserve_link = page.locator(f"a[href*='scd={STATION_CD}']").first
+    # 検索結果一覧の各行には「詳細」「周辺地図」「予約」の3つのリンクがあり、
+    # いずれも href に scd=<STATION_CD> を含む。そのため
+    # a[href*='scd=...'] だけで絞り込むと DOM 上で先頭に来る「詳細」リンク
+    # （こちらは target="_blank" で新タブを開く）を誤って掴んでしまい、
+    # 新タブは開くが中身は「詳細」ページで table.time が存在せずタイムアウト
+    # する、という紛らわしい失敗をする（2026-07-25 に実際に発生・特定）。
+    # 「予約」リンクは img alt="予約" を持ち、href に input.jsp を含み、
+    # target 属性を持たない（同じタブ内で遷移する）。これで一意に選ぶ。
+    reserve_link = page.locator(
+        f"a[href*='input.jsp'][href*='scd={STATION_CD}']"
+    ).first
     if reserve_link.count() == 0:
-        # ステーション名検索がヒットしなかった場合のフォールバック:
-        # 検索結果一覧内の最初の「予約」リンクを使う
+        reserve_link = page.locator("a:has(img[alt='予約'])").first
+    if reserve_link.count() == 0:
+        # 最後のフォールバック: アクセシブルネームで「予約」リンクを探す
         reserve_link = page.get_by_role("link", name="予約").first
 
-    # 検索結果一覧の「予約」リンクは target="_blank"（新しいタブで開く）。
-    # 2026-07-25 の動作確認で判明: これを見落として同じ page のまま
-    # wait_for_selector("table.time") すると、実際の空き状況は新しいタブ側で
-    # 開くため元の page はいつまでも search/list ページのままでタイムアウトする。
-    # そのため expect_popup() で新タブを捕まえ、以降はそちらを使う。
+    # 上記の通り「予約」リンク自体は同じタブ内で遷移するのが正常系だが、
+    # サイト側の実装が変わって新タブを開くようになった場合に備え、
+    # 短いタイムアウトで popup も一応監視しておく（通常は起きない想定）。
     try:
-        with page.expect_popup(timeout=10000) as popup_info:
+        with page.expect_popup(timeout=3000) as popup_info:
             reserve_link.click()
         grid_page = popup_info.value
     except PlaywrightTimeoutError:
-        # 新しいタブが開かなかった場合（サイト側の挙動が変わった等）は
-        # 同じ page のまま遷移したとみなすフォールバック
         grid_page = page
 
     grid_page.wait_for_load_state("networkidle", timeout=30000)

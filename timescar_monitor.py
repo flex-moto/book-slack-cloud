@@ -215,6 +215,62 @@ def _check_not_login_redirect(page):
         raise LoginRequired("cookie_expired", page.url)
 
 
+def _dismiss_overlays(page):
+    """お知らせ/同意ダイアログ等がリンクを覆っている場合に備え、
+    それらしい閉じるボタンを best-effort で押す（無ければ何もしない）。"""
+    selectors = [
+        "a:has-text('閉じる')", "button:has-text('閉じる')",
+        "a:has-text('同意')", "button:has-text('同意')",
+        "[class*='modal'] [class*='close']", "[class*='overlay'] [class*='close']",
+        ".modal-close", ".btn-close", "[aria-label='閉じる']", "[aria-label='close']",
+    ]
+    for sel in selectors:
+        try:
+            loc = page.locator(sel).first
+            if loc.count() and loc.is_visible():
+                loc.click(timeout=1500)
+                page.wait_for_timeout(300)
+        except Exception:
+            pass
+
+
+def _goto_station_search(page):
+    """トップページからステーション検索ページ(search.jsp)へ遷移する。
+
+    第一手はトップページ上の検索リンクの実クリック（実ブラウザ挙動の再現）。
+    ただし .first が非表示リンクを掴む/オーバーレイに覆われる等で
+    クリックできないケースがあるため、可視リンク優先＋直リンク退避で堅牢化する。
+    """
+    _dismiss_overlays(page)
+
+    # 1) 可視なステーション検索リンクを探してクリック（複数あれば可視な先頭）
+    links = page.locator("a[href='/view/station/search.jsp']")
+    try:
+        count = links.count()
+    except Exception:
+        count = 0
+    for i in range(count):
+        link = links.nth(i)
+        try:
+            if not link.is_visible():
+                continue
+            link.scroll_into_view_if_needed(timeout=2000)
+            link.click(timeout=8000)
+            page.wait_for_load_state("networkidle", timeout=30000)
+            if STATION_SEARCH_URL in page.url or ERROR_MARK in page.url \
+               or LOGIN_HOST in page.url:
+                return
+            # 遷移はしたが期待URLでない場合は次の候補/退避へ
+        except Exception:
+            continue
+
+    # 2) 退避: search.jsp へ直接 goto（直リンク不可は reserve/input.jsp のみ）
+    if DEBUG:
+        print("[debug] 可視リンク経由で search.jsp に遷移できず、直リンクへ退避",
+              file=sys.stderr)
+    page.goto(STATION_SEARCH_URL, wait_until="networkidle", timeout=60000)
+
+
 def _goto_grid(page):
     """トップページから実際にクリックを辿って予約ページへ遷移する。
 
@@ -232,8 +288,17 @@ def _goto_grid(page):
     page.goto(BASE, wait_until="networkidle", timeout=60000)
     _check_not_login_redirect(page)
 
-    page.locator(f"a[href='/view/station/search.jsp']").first.click()
-    page.wait_for_load_state("networkidle", timeout=30000)
+    # トップページ → ステーション検索ページへ。
+    # 2026-07-26: Cookie更新後、a[href='/view/station/search.jsp'].first が
+    # 「DOMに在るが not visible」でクリックがタイムアウトする事象が発生。
+    # サイトがPC用/SP用メニューの両方をDOMに持ち .first が非表示側を掴む、
+    # あるいはお知らせ等のオーバーレイに覆われる、が原因候補。原因を問わず
+    # 通るよう、次の順で堅牢化している:
+    #   1) 可視なリンクだけを対象に（複数あれば可視な最初の1つを）クリック
+    #   2) 可視リンクが無い/クリックできなければ search.jsp へ直接 goto で退避
+    # （直リンク不可が確認されているのは reserve/input.jsp のみ。search.jsp は
+    #   トップ経由を第一手にしつつ、最後の手段として直リンクを許容する）
+    _goto_station_search(page)
     _check_not_login_redirect(page)
     if ERROR_MARK in page.url:
         raise LoginRequired("transit_error", page.url)

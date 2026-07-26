@@ -36,7 +36,8 @@ jobs:
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_TIMESCAR: ${{ secrets.SLACK_CHANNEL_TIMESCAR }}  # 任意。未設定なら #reservation
-          TIMESCAR_COOKIE: ${{ secrets.TIMESCAR_COOKIE }}                # 手動ログイン後のセッションCookie
+          TIMESCAR_COOKIE: ${{ secrets.TIMESCAR_COOKIE }}                # 手動ログイン後のセッションCookie(share.timescar.jp)
+          TIMESCAR_COOKIE_TIMESCLUB: ${{ secrets.TIMESCAR_COOKIE_TIMESCLUB }}  # 会員認証(api.timesclub.jp)の持続トークン含むCookie
           # 監視対象の上書き（任意）。未設定ならスクリプト内デフォルト
           #   station=LM25(利尻富士観光ホテル駐車場) / dates=2026-08-10,08-11 / times=08〜19
           TIMESCAR_STATION: ${{ vars.TIMESCAR_STATION }}              # ステーションコード(scd)

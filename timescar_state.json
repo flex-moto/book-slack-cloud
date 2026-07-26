@@ -1,4 +1,6 @@
 {
  "slots": [],
- "cookie_expired_streak": {}
+ "cookie_expired_streak": {
+  "cookie_expired": 1
+ }
 }

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Timescar Cookie Copier",
+  "version": "1.1.0",
+  "description": "Copy Timescar and Times Club cookies as HTTP Cookie header strings.",
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://share.timescar.jp/*",
+    "https://api.timesclub.jp/*"
+  ],
+  "action": {
+    "default_title": "タイムズカーCookieをコピー",
+    "default_popup": "popup.html"
+  }
+}

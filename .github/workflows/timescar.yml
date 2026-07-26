@@ -7,7 +7,7 @@ on:
   # GitHub純正 schedule は当リポジトリで発火しない実績があるため、定時トリガは
   # 外部cron（cron-job.org）→ workflow_dispatch を主とする。下の schedule は保険。
   schedule:
-    - cron: "*/15 0-15,22,23 * * *"   # 15分おき / UTC 0-15,22-23 = JST 07:00〜翌00:00（暫定: セッション寿命検証のため毎時0分→15分間隔へ）
+    - cron: "0 0-15,22,23 * * *"   # 毎時0分 / UTC 0-15,22-23 = JST 07:00〜翌00:00
   workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
 
 permissions:
@@ -41,12 +41,16 @@ jobs:
           # 監視対象の上書き（任意）。未設定ならスクリプト内デフォルト
           #   station=LM25(利尻富士観光ホテル駐車場) / dates=2026-08-10,08-11 / times=08〜19
           TIMESCAR_STATION: ${{ vars.TIMESCAR_STATION }}              # ステーションコード(scd)
+          TIMESCAR_STATION_QUERY: ${{ vars.TIMESCAR_STATION_QUERY }}  # ステーション検索キーワード
           TIMESCAR_CARS: ${{ vars.TIMESCAR_CARS }}                    # 車両名の一部（カンマ区切り）
           TIMESCAR_TARGET_DATES: ${{ vars.TIMESCAR_TARGET_DATES }}    # 監視対象日 "YYYY-MM-DD" カンマ区切り
           TIMESCAR_TIMES: ${{ vars.TIMESCAR_TIMES }}                  # 監視する時台 "HH"（カンマ区切り）
+          TIMESCAR_MAX_PAGES: ${{ vars.TIMESCAR_MAX_PAGES }}          # タイムテーブル送り上限
+          TIMESCAR_MAX_COOKIE_NOTICES: ${{ vars.TIMESCAR_MAX_COOKIE_NOTICES }}  # 認証エラー通知上限
         run: python timescar_monitor.py
 
       - name: Persist state
+        if: ${{ always() }}
         run: |
           if [[ -n "$(git status --porcelain timescar_state.json)" ]]; then
             git config user.name  "github-actions[bot]"

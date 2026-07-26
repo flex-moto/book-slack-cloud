@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Timescar Cookie Copier</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>タイムズカーCookie</h1>
+      <p class="description">
+        ログイン済みの2ドメインのCookieを、GitHub Secretごとにコピーします。
+      </p>
+      <section>
+        <code>TIMESCAR_COOKIE</code>
+        <button class="copy-button" data-target="share" type="button" disabled>
+          share.timescar.jp をコピー
+        </button>
+      </section>
+      <section>
+        <code>TIMESCAR_COOKIE_TIMESCLUB</code>
+        <button class="copy-button" data-target="timesclub" type="button" disabled>
+          api.timesclub.jp をコピー
+        </button>
+      </section>
+      <p id="status" role="status" aria-live="polite">
+        ページを確認しています…
+      </p>
+      <p class="privacy">
+        対象は上記2ドメインのみ。外部送信や保存は行いません。
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

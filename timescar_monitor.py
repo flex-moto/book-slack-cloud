@@ -62,7 +62,8 @@
 環境変数:
   SLACK_BOT_TOKEN          (必須) 既存リポジトリと共用。chat.postMessage で投稿
   SLACK_CHANNEL_TIMESCAR   (任意) 投稿先チャンネルID。未設定なら #reservation
-  TIMESCAR_COOKIE          (必須) 手動ログイン後のCookie。 "name=value; name2=value2" 形式
+  TIMESCAR_COOKIE          (必須) share.timescar.jp のCookie。 "name=value; name2=value2" 形式
+  TIMESCAR_COOKIE_TIMESCLUB (必須) api.timesclub.jp のログイン維持Cookie。同形式
   TIMESCAR_STATION         (任意) ステーションコード(scd)。未設定なら LM25
   TIMESCAR_STATION_QUERY   (任意) ステーション名検索で使うキーワード。未設定なら「利尻富士観光ホテル」
                            （TIMESCAR_STATIONを変えたらこちらも対応する名前に変更すること）
@@ -385,9 +386,16 @@ def _collect(page, today):
 
 def scan_availability():
     """対象の vacant 枠集合を返す。Cookie失効時は LoginRequired。"""
+    share_raw = os.environ.get("TIMESCAR_COOKIE", "").strip()
+    timesclub_raw = os.environ.get("TIMESCAR_COOKIE_TIMESCLUB", "").strip()
+    if not share_raw:
+        raise RuntimeError("TIMESCAR_COOKIE 未設定（share.timescar.jp のCookieが必要）")
+    if not timesclub_raw:
+        raise RuntimeError(
+            "TIMESCAR_COOKIE_TIMESCLUB 未設定（api.timesclub.jp のCookieが必要）"
+        )
+
     jar = cookies_from_env()
-    if not jar:
-        raise RuntimeError("TIMESCAR_COOKIE 未設定（手動ログイン後のCookieが必要）")
 
     today = date.today()
     max_target = max(TARGET_DATES) if TARGET_DATES else None
@@ -531,7 +539,7 @@ def _slack_post(text):
 
 
 def notify_slack(opened, filled):
-    lines = ["🚗 タイムズカーシェア 空き枠アラート（利尻富士観光ホテル駐車場）"]
+    lines = [f"🚗 タイムズカーシェア 空き枠アラート（{STATION_QUERY} / {STATION_CD}）"]
     if opened:
         lines.append("\n🟢 空きが出ました:")
         lines += [f"・{s}" for s in sorted(opened)]
@@ -561,7 +569,8 @@ def notify_cookie_expired(reason="cookie_expired", url="", streak=1, max_notices
     else:
         _slack_post(
             "⚠️ タイムズカーシェア監視: セッションCookieが失効しました（ログインページへリダイレクト）。\n"
-            "手動でログインし直し、GitHub Secrets の TIMESCAR_COOKIE を更新してください。"
+            "手動でログインし直し、GitHub Secrets の TIMESCAR_COOKIE と "
+            "TIMESCAR_COOKIE_TIMESCLUB を両方更新してください。"
             f"{suffix}"
         )
 
@@ -570,6 +579,20 @@ MAX_COOKIE_NOTICES = int(os.environ.get("TIMESCAR_MAX_COOKIE_NOTICES", "3") or 3
 
 
 def main():
+    share_cookie_count = len(_parse_cookie_str(
+        os.environ.get("TIMESCAR_COOKIE", "").strip(), COOKIE_URL
+    ))
+    timesclub_cookie_count = len(_parse_cookie_str(
+        os.environ.get("TIMESCAR_COOKIE_TIMESCLUB", "").strip(),
+        f"https://{LOGIN_HOST}",
+    ))
+    print(
+        "監視設定: "
+        f"station={STATION_CD} query={STATION_QUERY!r} "
+        f"dates={TARGET_DATES} hours={sorted(TARGET_HOURS)} "
+        f"cars={TARGET_CARS or ['全車両']} max_pages={MAX_PAGES} "
+        f"cookies=share:{share_cookie_count},timesclub:{timesclub_cookie_count}"
+    )
     try:
         current = scan_availability()
     except LoginRequired as e:
@@ -581,11 +604,11 @@ def main():
         )
         if should_notify:
             notify_cookie_expired(e.reason, e.url, streak=streak, max_notices=MAX_COOKIE_NOTICES)
-        sys.exit(0)
+        sys.exit(1)
     except Exception as e:
         # 取得失敗時は状態を更新せず終了（取りこぼし・誤検知防止）＝monitor.pyと同作法
         print(f"[{datetime.now()}] 取得失敗のため通知・記録をスキップ: {e}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     # ここまで来た＝Cookie/画面遷移とも正常に完走できた。連続失敗カウントをリセット。
     _reset_cookie_expired_streak()

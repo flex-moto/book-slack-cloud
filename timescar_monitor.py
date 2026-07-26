@@ -420,18 +420,37 @@ def scan_availability():
     return found
 
 
-def cookies_from_env():
-    """TIMESCAR_COOKIE("a=1; b=2")を Playwright add_cookies 用の配列へ。"""
-    raw = os.environ.get("TIMESCAR_COOKIE", "").strip()
-    if not raw:
-        return []
+def _parse_cookie_str(raw, url):
+    """"a=1; b=2" を Playwright add_cookies 用の配列へ（指定URLドメインに紐付け）。"""
     jar = []
-    for pair in raw.split(";"):
+    for pair in (raw or "").split(";"):
         pair = pair.strip()
         if "=" not in pair:
             continue
         name, value = pair.split("=", 1)
-        jar.append({"name": name.strip(), "value": value.strip(), "url": COOKIE_URL})
+        jar.append({"name": name.strip(), "value": value.strip(), "url": url})
+    return jar
+
+
+def cookies_from_env():
+    """セッションCookieを Playwright add_cookies 用の配列へ組み立てる。
+
+    タイムズは2ドメインにまたがって認証している:
+      - share.timescar.jp … 予約サイト本体のセッション(JSESSIONID等)
+      - api.timesclub.jp   … 会員認証。「ログイン状態を保持」の持続トークン
+                             (remember-me)はこちら側にある。share側セッションが
+                             切れるとここへ飛ばされ、持続トークンがあれば自動再
+                             ログインされる。CIにこのトークンが無いと、share側
+                             セッションが切れた瞬間にログイン画面へ落ちる。
+    そのため2つの環境変数を受け取り、それぞれ正しいドメインに紐付ける:
+      TIMESCAR_COOKIE            → share.timescar.jp
+      TIMESCAR_COOKIE_TIMESCLUB  → api.timesclub.jp （持続トークンを含める）
+    """
+    jar = _parse_cookie_str(os.environ.get("TIMESCAR_COOKIE", "").strip(), COOKIE_URL)
+    jar += _parse_cookie_str(
+        os.environ.get("TIMESCAR_COOKIE_TIMESCLUB", "").strip(),
+        f"https://{LOGIN_HOST}",
+    )
     return jar
 
 

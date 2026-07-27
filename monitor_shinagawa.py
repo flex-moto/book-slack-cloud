@@ -99,10 +99,19 @@ def scan_availability():
             r = s.post(GRID_URL, headers=headers, timeout=30,
                        json=_grid_body(session_ref, _jst_to_utc_iso(d, hour)))
             r.raise_for_status()
-            data = ((r.json().get("availability_grid") or {}).get("data")) or []
+            data = (r.json().get("availability_grid") or {}).get("data")
+            # TableCheck は日付/条件により data を list 以外で返すことがある
+            # （例: 予約枠が未生成の日は dict {'menu_item_ids': [...]}、
+            # ときに文字列）。その場合は「この枠に空き情報なし」として扱い、
+            # 配列前提の走査でクラッシュ（'str' object has no attribute 'get'）
+            # させない。
+            if not isinstance(data, list):
+                data = []
             checked += 1
             total_entries += len(data)
             for ent in data:
+                if not isinstance(ent, dict):
+                    continue
                 if str(ent.get("t", "")).startswith(want_prefix) and ent.get("a"):
                     found.add(f"{d.isoformat()} {hour:02d}:00")
                     break

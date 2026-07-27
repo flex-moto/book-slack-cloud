@@ -70,61 +70,6 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 | 状態をリセット | `pickleball_state.json` を `[]` にしてコミット |
 | ローカルで試す | `pip install playwright && playwright install chromium` の後 `python monitor.py` |
 
-## （オプション）タイムズカーシェア 空き監視
-
-ピックルボール監視と同じ作法で、**タイムズカーシェアの予約 空き状況を監視して Slack に通知する**機能も同梱しています（`timescar_monitor.py` / `.github/workflows/timescar.yml`）。使わない場合は設定不要です。
-
-> **⚠️ ピックルボールとの違い＝ログイン必須 & reCAPTCHA**
-> タイムズの空き状況ページはログインの内側にあり、ログインフォームは reCAPTCHA で保護されています。そのため**会員番号＋パスワードによる自動ログインは行いません**（規約・bot検知の観点でも不可）。代わりに、**手動ログイン済みの2ドメインのCookieを再利用**します。`share.timescar.jp` のセッションが切れた場合、`api.timesclub.jp` のログイン維持Cookieで再認証します。どちらも失効した場合は、2つのSecretを両方更新してください。
-
-- 監視対象（既定・固定）: **利尻富士観光ホテル駐車場（`LM25`）** の **2026-08-10 / 08-11**、**8:00〜20:00**（時台 `08`〜`19`）の「空きあり(水色 = `.vacant`)」枠。車両ごと・時台の粒度で判定
-- 頻度: **1時間おき（毎時0分）**。ただし**深夜 JST 01:00〜06:00 は停止**（監視は JST 07:00〜翌00:00）。対象日が近づいたら間隔を短くしてもOK
-- 仕組み: `timescar_monitor.py` がCookieで空き状況ページ（`/view/reserve/input.jsp?scd=<ステーション>&carBaseModelNm=&searchFlg=`）を開き、`table.time` 内の `td.timelinedot.vacant` を抽出。前回状態 `timescar_state.json` と比較して**空きが出た／満席に戻った**変化があれば Slack に投稿します
-- ワークフロー: `.github/workflows/timescar.yml`（`workflow_dispatch` ＋保険の `schedule: 0 0-15,22,23 * * *` = UTC基準で JST 07:00〜翌00:00 を毎時）。定時実行は外部cron（cron-job.org）から `workflow_dispatch` API を叩く想定です
-- 実行結果: ログイン切れ・画面遷移エラー・予期しない取得エラーは、GitHub Actions上でも失敗（赤）になります。通知回数の状態は失敗時も保存されます
-
-> **📌 タイムテーブルは「現在時刻起点・12時間・15分刻み」の窓で、日付選択では動かず「次のタイムテーブルへ」で12時間ずつ進む作りです。** そのため対象日（例 2週間先の 08-10/11）に到達するには、実行のたびに窓を数十回送ります（現在日から離れるほど送り回数が増え、当日が近づくほど減ります）。上限は `TIMESCAR_MAX_PAGES`（既定60）。
->
-> **⚠️ 負荷・規約の注意:** 1回の実行で数十回のページ送り＝予約サーバへのアクセスが発生します。現状は1時間おき＋深夜停止で負荷を抑えていますが、bot的アクセスであることに変わりはなく（アカウント停止リスクもゼロではない）、頻度は必要最小限に留めるのが無難です。特定の1日を待つだけなら、タイムズ本体の**「空き待ち設定」**機能（車両ごとに設定可）も有力な代替です。
-
-### 設定（GitHub Secrets / Variables）
-
-| 種類 | 名前 | 必須 | 説明 |
-|---|---|---|---|
-| Secret | `SLACK_BOT_TOKEN` | 必須 | 本の投稿と共用。`chat.postMessage` で投稿します |
-| Secret | `TIMESCAR_COOKIE` | 必須 | `share.timescar.jp` のセッションCookie。`name=value; name2=value2` 形式 |
-| Secret | `TIMESCAR_COOKIE_TIMESCLUB` | 必須 | `api.timesclub.jp` のログイン維持Cookie。同形式 |
-| Secret | `SLACK_CHANNEL_TIMESCAR` | 任意 | 投稿先チャンネルID。未設定なら `#reservation`（`C0BJ3ETJ1H7`） |
-| Variable | `TIMESCAR_STATION` | 任意 | ステーションコード(`scd`)。未設定なら `LM25`（利尻富士観光ホテル駐車場） |
-| Variable | `TIMESCAR_STATION_QUERY` | 任意 | ステーション検索キーワード。未設定なら `利尻富士観光ホテル` |
-| Variable | `TIMESCAR_CARS` | 任意 | 監視対象の車両名の一部（カンマ区切り）。未指定なら全車両（例: `ハスラー,ルークス`） |
-| Variable | `TIMESCAR_TARGET_DATES` | 任意 | 監視対象日 `YYYY-MM-DD` のカンマ区切り。未設定なら `2026-08-10,2026-08-11` |
-| Variable | `TIMESCAR_TIMES` | 任意 | 監視する時台 `HH` のカンマ区切り。未設定なら `08`〜`19`（=8:00〜20:00） |
-| Variable | `TIMESCAR_MAX_PAGES` | 任意 | タイムテーブル送りの上限回数（既定 `60`） |
-| Variable | `TIMESCAR_MAX_COOKIE_NOTICES` | 任意 | 同種の認証・遷移エラーをSlack通知する連続回数（既定 `3`） |
-
-### Cookieの取り出し方
-
-推奨はリポジトリ同梱のChrome拡張 `tools/timescar-cookie-copier` です。
-
-1. ブラウザで [タイムズカー](https://share.timescar.jp/) にログインし、「ログイン状態を保持」を有効にする
-2. 拡張の「share.timescar.jp をコピー」を押し、`TIMESCAR_COOKIE` Secretへ貼り付ける
-3. 拡張の「api.timesclub.jp をコピー」を押し、`TIMESCAR_COOKIE_TIMESCLUB` Secretへ貼り付ける
-4. Actions → timescar-slot-monitor → Run workflow で動作確認する
-
-拡張はCookieを外部送信・保存せず、クリックしたドメインのCookieだけをクリップボードへ書き込みます。Cookieは認証情報そのものなので、チャット・ログ・通常ファイルへ貼り付けないでください。
-
-### 操作
-
-| やりたいこと | 方法 |
-|---|---|
-| 今すぐ空き状況をチェック | Actions → timescar-slot-monitor → Run workflow（または `gh workflow run timescar.yml`） |
-| 監視間隔・時間帯を変更 | cron-job.org のジョブ、および `timescar.yml` の `schedule`（UTC基準）を編集。深夜停止は UTC 16-21 を除外して表現 |
-| 状態をリセット | `timescar_state.json` の `slots` と `cookie_expired_streak` を空にしてコミット |
-| ローカルで試す/内容確認 | 2つのCookie環境変数を設定し、`TIMESCAR_DEBUG=1 python timescar_monitor.py` |
-
-> **実DOM確認済み（2026-07、ログイン済みブラウザ）**: 空きセル=`td.timelinedot.vacant`（水色 `rgb(102,204,255)`）、満席=`.full`、予約不可=`.impossible`、メンテ=`.maintenance`。窓は12時間・15分刻みで「次のタイムテーブルへ」(`doSearchNextTimetableJs`)で12時間ずつ前進。ステーション `LM25` は夏季限定営業（6/1〜10月末）で車両はベーシック／ハスラー(1259165)・ルークス(1202623)の2台。判定は時台粒度（:45開始枠のみの空きは対象外）。既定値は上表のVariableで変更可。
-
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:
 ```sh

@@ -56,11 +56,4 @@ jobs:
         run: python monitor_ginza_monthly.py
 
       - name: Persist state
-        run: |
-          if [[ -n "$(git status --porcelain pickleball_state.json pickleball_shinagawa_state.json pickleball_monthly_state.json)" ]]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add pickleball_state.json pickleball_shinagawa_state.json pickleball_monthly_state.json
-            git commit -m "chore: update pickleball slot state [skip ci]"
-            git push
-          fi
+        run: .github/scripts/persist-pickleball-state.sh

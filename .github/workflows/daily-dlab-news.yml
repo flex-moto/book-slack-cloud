@@ -1,0 +1,43 @@
+name: daily-dlab-news-post
+
+on:
+  # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
+  # cron-job.org 側で 毎朝23:00 UTC（=8:00 JST）に dispatch API を叩く想定。
+  # GitHub純正 schedule は当リポジトリで発火しない実績があるため使わない（daily.yml と同じ理由）。
+  workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
+
+permissions:
+  contents: write          # dlab_news_posted.log をコミットして履歴を残すため
+
+concurrency:
+  group: daily-dlab-news-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install --quiet openpyxl
+
+      - name: Post today's dlab AI news
+        env:
+          SLACK_BOT_TOKEN_2: ${{ secrets.SLACK_BOT_TOKEN_2 }}
+          SLACK_CHANNEL_DLAB_NEWS: ${{ secrets.SLACK_CHANNEL_DLAB_NEWS }}
+        run: python dlab_news_post.py
+
+      - name: Persist posted history
+        run: |
+          if [[ -n "$(git status --porcelain dlab_news_posted.log)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add dlab_news_posted.log
+            git commit -m "chore: update dlab_news_posted.log [skip ci]"
+            git push
+          fi

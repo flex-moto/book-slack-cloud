@@ -97,6 +97,33 @@ dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択
 | 投稿履歴をリセット | `quiz_posted.log` を空にしてコミット |
 | 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集 |
 
+## dlab AI情報 毎日投稿（fyi_ai関連最新ニュース_情報）
+
+dlab（daigovideolab.jp）のAIチャンネルから選んだ直近のAI関連ニュース記事15本を元に、**毎朝1本の概要**を Slack の `#fyi_ai関連最新ニュース_情報`（チャンネルID: `C05KPV4DSLS`）へ自動投稿します。
+
+- `data/dlab_news/news_bank.xlsx` … 記事バンク（day_index・タイトル・URL・公開日・概要）。中身を直接Excelで編集してもOK（`dlab_news_post.py` はExcelを直接読みます）
+- `dlab_news_post.py` … 未投稿の記事を1つ選びSlackへ投稿。全15記事を投稿し終えたら自動的に最初から繰り返します
+- `dlab_news_posted.log` … 投稿済みの記事インデックスを記録（`quiz_posted.log` と同じ仕組み）
+- `.github/workflows/daily-dlab-news.yml` … `workflow_dispatch` で起動するワークフロー。外部cron（cron-job.org）から毎朝8:00 JST（=前日23:00 UTC、`0 23 * * *`）に叩く想定
+
+### 設定（GitHub Secrets）
+
+| 種類 | 名前 | 説明 |
+|---|---|---|
+| Secret | `SLACK_BOT_TOKEN_2` | 本の投稿・クイズ投稿と共用のボットトークン |
+| Secret | `SLACK_CHANNEL_DLAB_NEWS` | 任意。投稿先チャンネルID。未設定なら `C05KPV4DSLS`（`#fyi_ai関連最新ニュース_情報`） |
+
+> Slack App（book-slack-cloudが使っているBot）を `#fyi_ai関連最新ニュース_情報` に招待しておく必要があります（未招待だと `not_in_channel` で投稿失敗）。
+
+### 操作
+
+| やりたいこと | 方法 |
+|---|---|
+| 今すぐテスト投稿 | GitHubリポジトリ → Actions → daily-dlab-news-post → Run workflow（または `gh workflow run daily-dlab-news.yml`） |
+| 記事を追加・入れ替え | `data/dlab_news/news_bank.xlsx` を直接編集 |
+| 投稿履歴をリセット | `dlab_news_posted.log` を空にしてコミット |
+| 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集 |
+
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:
 ```sh

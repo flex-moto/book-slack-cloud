@@ -25,7 +25,8 @@ def load_quiz_bank():
     articles = {}
     for row in rows:
         (day_index, channel, channel_label, title, url, published, q_no,
-         question, choice_a, choice_b, choice_c, choice_d, correct) = row
+         question, choice_a, choice_b, choice_c, choice_d, correct,
+         explanation) = row
         article = articles.setdefault(day_index, {
             "day_index": day_index,
             "channel_label": channel_label,
@@ -39,6 +40,7 @@ def load_quiz_bank():
             "question": question,
             "choices": {"A": choice_a, "B": choice_b, "C": choice_c, "D": choice_d},
             "correct": correct,
+            "explanation": explanation,
         })
     return [articles[k] for k in sorted(articles)]
 
@@ -76,6 +78,7 @@ def build_answer_message(article):
     lines = ["✅ *正解発表*", ""]
     for q in article["questions"]:
         lines.append(f"Q{q['q_no']}: *{q['correct']}* ({q['choices'][q['correct']]})")
+        lines.append(f"　→ {q['explanation']}")
     return "\n".join(lines)
 
 

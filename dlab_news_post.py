@@ -22,13 +22,14 @@ def load_news_bank():
     ws = wb["news_bank"]
     articles = []
     for row in ws.iter_rows(min_row=2, values_only=True):
-        day_index, title, url, published, summary, detail = row
+        day_index, title, url, dlab_url, published, summary, detail = row
         if day_index is None:
             continue
         articles.append({
             "day_index": day_index,
             "title": title,
             "url": url,
+            "dlab_url": dlab_url,
             "published": published,
             "summary": summary,
             "detail": detail,
@@ -68,6 +69,10 @@ def build_detail_message(article):
         "📖 *詳細*",
         "",
         article["detail"],
+        "",
+        "---",
+        f"元記事(dlab): <{article['dlab_url']}|{article['title']}>",
+        article["summary"],
     ]
     return "\n".join(lines)
 

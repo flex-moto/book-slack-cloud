@@ -70,6 +70,33 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 | 状態をリセット | `pickleball_state.json` を `[]` にしてコミット |
 | ローカルで試す | `pip install playwright && playwright install chromium` の後 `python monitor.py` |
 
+## 今日のクイズ（dlab記事ベースのSlackクイズ）
+
+dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択×30記事）のクイズバンクを元に、**毎朝1記事分（4問）**を rechain-inc の `#今日のクイズ` へ自動投稿します。
+
+- `data/quiz/quiz_bank.xlsx` … クイズ本体（記事タイトル・URL・4択問題・正解）。`scripts/build_quiz_bank.py` を実行すると作り直せます。中身を直接Excelで編集してもOK（`quiz_post.py` はExcelを直接読みます）
+- `quiz_post.py` … 未投稿の記事を1つ選び、問題本文→スレッド返信で正解、の順にSlackへ投稿。全30記事を投稿し終えたら自動的に最初から繰り返します
+- `quiz_posted.log` … 投稿済みの記事インデックスを記録（`post_book.py` の `posted.log` と同じ仕組み）
+- `.github/workflows/daily-quiz.yml` … `workflow_dispatch` で起動するワークフロー。外部cron（cron-job.org）から平日朝8:35 JST（=前日23:35 UTC、`35 23 * * 0-4`）に叩く想定
+
+### 設定（GitHub Secrets）
+
+| 種類 | 名前 | 説明 |
+|---|---|---|
+| Secret | `SLACK_BOT_TOKEN_2` | 本の投稿(rechain-inc向け)と共用のボットトークン |
+| Secret | `SLACK_CHANNEL_QUIZ` | `#今日のクイズ` チャンネルのID |
+
+> Slack App（book-slack-cloudが使っているBot）を `#今日のクイズ` に招待しておく必要があります（未招待だと `not_in_channel` で投稿失敗）。
+
+### 操作
+
+| やりたいこと | 方法 |
+|---|---|
+| 今すぐテスト投稿 | GitHubリポジトリ → Actions → daily-quiz-post → Run workflow（または `gh workflow run daily-quiz.yml`） |
+| クイズを追加・修正 | `data/quiz/quiz_bank.xlsx` を直接編集、または `scripts/build_quiz_bank.py` を編集して再生成 |
+| 投稿履歴をリセット | `quiz_posted.log` を空にしてコミット |
+| 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集 |
+
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:
 ```sh

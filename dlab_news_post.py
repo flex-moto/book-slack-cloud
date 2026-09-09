@@ -80,7 +80,7 @@ def slack_post(token, channel, text):
 
 def main():
     token = os.environ["SLACK_BOT_TOKEN_2"]
-    channel = os.environ.get("SLACK_CHANNEL_DLAB_NEWS", "C05KPV4DSLS")
+    channel = os.environ.get("SLACK_CHANNEL_DLAB_NEWS") or "C05KPV4DSLS"
 
     articles = load_news_bank()
     posted_days = load_posted_days()

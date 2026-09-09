@@ -22,7 +22,7 @@ def load_news_bank():
     ws = wb["news_bank"]
     articles = []
     for row in ws.iter_rows(min_row=2, values_only=True):
-        day_index, title, url, published, summary = row
+        day_index, title, url, published, summary, detail = row
         if day_index is None:
             continue
         articles.append({
@@ -31,6 +31,7 @@ def load_news_bank():
             "url": url,
             "published": published,
             "summary": summary,
+            "detail": detail,
         })
     return sorted(articles, key=lambda a: a["day_index"])
 
@@ -56,12 +57,25 @@ def build_message(article):
         f"*<{article['url']}|{article['title']}>*（{article['published']}時点の情報）",
         "",
         article["summary"],
+        "",
+        "詳しい内容はこのスレッドの返信をチェック👇",
     ]
     return "\n".join(lines)
 
 
-def slack_post(token, channel, text):
+def build_detail_message(article):
+    lines = [
+        "📖 *詳細*",
+        "",
+        article["detail"],
+    ]
+    return "\n".join(lines)
+
+
+def slack_post(token, channel, text, thread_ts=None):
     payload = {"channel": channel, "text": text}
+    if thread_ts:
+        payload["thread_ts"] = thread_ts
     req = urllib.request.Request(
         SLACK_API_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -91,7 +105,11 @@ def main():
         article = articles[0]
 
     text = build_message(article)
-    slack_post(token, channel, text)
+    result = slack_post(token, channel, text)
+    thread_ts = result["ts"]
+
+    detail_text = build_detail_message(article)
+    slack_post(token, channel, detail_text, thread_ts=thread_ts)
 
     posted_days.add(article["day_index"])
     with open(POSTED_LOG_PATH, "w", encoding="utf-8") as f:

@@ -7,6 +7,7 @@ day_index の記事を1件選んで投稿する。全件投稿し終えたら dl
 """
 import json
 import os
+import random
 import urllib.request
 
 import openpyxl
@@ -45,10 +46,12 @@ def load_posted_days():
 
 
 def pick_next_article(articles, posted_days):
-    for article in articles:
-        if article["day_index"] not in posted_days:
-            return article
-    return None
+    """未投稿記事からランダムに1件選ぶ。全件投稿済みなら None。"""
+    candidates = [
+        article for article in articles
+        if article["day_index"] not in posted_days
+    ]
+    return random.choice(candidates) if candidates else None
 
 
 def build_message(article):

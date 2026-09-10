@@ -1,0 +1,52 @@
+name: daily-quiz-post-line
+
+on:
+  # 外部cron（cron-job.org）から workflow_dispatch API を2回叩く運用。
+  # 1回目: phase=question（朝8:35 JSTなど）
+  # 2回目: phase=answer（1回目の2時間後、10:35 JSTなど）
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "question（問題を配信） or answer（正解を配信）"
+        required: true
+        default: "question"
+        type: choice
+        options:
+          - question
+          - answer
+
+permissions:
+  contents: write          # line_quiz_state.json / line_quiz_posted.log をコミットするため
+
+concurrency:
+  group: daily-quiz-post-line
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install --quiet openpyxl
+
+      - name: Post today's LINE quiz
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          QUIZ_PHASE: ${{ inputs.phase }}
+        run: python line_quiz_post.py
+
+      - name: Persist state
+        run: |
+          if [[ -n "$(git status --porcelain line_quiz_posted.log line_quiz_state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add line_quiz_posted.log line_quiz_state.json
+            git commit -m "chore: update line quiz state [skip ci]"
+            git push
+          fi

@@ -97,6 +97,43 @@ dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択
 | 投稿履歴をリセット | `quiz_posted.log` を空にしてコミット |
 | 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集 |
 
+## 今日のクイズ（LINE版）
+
+同じ `data/quiz/quiz_bank.xlsx` を使い、LINE公式アカウントの友だち全員へ**Broadcast配信**します。LINEにはSlackのスレッド機能がないため、**問題**と**正解・解説**を2回の別実行に分けて送ります（間隔は運用側のcronで調整。デフォルト想定は2時間後）。
+
+- `line_quiz_post.py` … `QUIZ_PHASE`（`question` / `answer`）で動作を切り替える
+  - `question` … 未投稿の記事を1つ選び、問題文（4問+心理学ボーナス1問）をBroadcast。選んだ記事番号を `line_quiz_state.json` に「回答待ち」として保存
+  - `answer` … `line_quiz_state.json` に保存された記事の正解・解説をBroadcast。送信後 `line_quiz_posted.log` に記録し、state をクリア
+  - 前回の回答待ちが残っている状態で `question` を実行すると、二重投稿を避けるため何もせずスキップします
+- `line_quiz_posted.log` / `line_quiz_state.json` … 投稿履歴と「回答待ち」の状態管理（`quiz_posted.log` と同じ仕組み）
+- `.github/workflows/daily-quiz-line.yml` … `workflow_dispatch`（`phase` 入力で `question`/`answer` を指定）で起動
+
+### LINE Channel Access Tokenの取得手順
+
+1. [LINE Developers Console](https://developers.line.biz/console/) にログイン（LINEアカウントでOK）
+2. 「新規プロバイダー作成」→ プロバイダー名を入力
+3. そのプロバイダー内で「新規チャネル作成」→ **Messaging API** を選択し、チャネル名・業種などを入力して作成（これがLINE公式アカウントになります）
+4. 作成したチャネルの「Messaging API設定」タブを開く
+5. ページ下部「チャネルアクセストークン（長期）」で **発行** をクリック → 表示された文字列が `LINE_CHANNEL_ACCESS_TOKEN`
+6. 同じ画面で **応答メッセージ・あいさつメッセージをオフ**にしておくと、Bot的な自動応答と競合しません
+7. QRコードを友だち追加してテストできます（Broadcastは友だち登録している全員に届くので、テスト中は自分だけを友だちにしておくのがおすすめ）
+
+### 設定（GitHub Secrets）
+
+| 種類 | 名前 | 説明 |
+|---|---|---|
+| Secret | `LINE_CHANNEL_ACCESS_TOKEN` | 上記手順で発行した長期チャネルアクセストークン |
+
+### 操作
+
+| やりたいこと | 方法 |
+|---|---|
+| 今すぐ問題をテスト投稿 | Actions → daily-quiz-post-line → Run workflow → `phase: question`（または `gh workflow run daily-quiz-line.yml -f phase=question`） |
+| 今すぐ正解をテスト投稿 | 同ワークフローを `phase: answer` で実行 |
+| 定時実行を組む | cron-job.orgに2つのジョブを登録し、`workflow_dispatch` APIを叩く（`inputs: {"phase": "question"}` / `{"phase": "answer"}`）。2つ目は1つ目の2時間後に設定 |
+| クイズを追加・修正 | Slack版と共通の `data/quiz/quiz_bank.xlsx` を編集 |
+| 投稿履歴をリセット | `line_quiz_posted.log` を空にし、`line_quiz_state.json` を削除してコミット |
+
 ## dlab AI情報 毎日投稿（fyi_ai関連最新ニュース_情報）
 
 dlab（daigovideolab.jp）のAIチャンネルから選んだ直近のAI関連ニュース記事15本を元に、**毎朝1本の概要**を Slack の `#fyi_ai関連最新ニュース_情報`（チャンネルID: `C05KPV4DSLS`）へ自動投稿します。

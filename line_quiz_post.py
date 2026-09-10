@@ -98,8 +98,14 @@ def clear_state():
         os.remove(STATE_PATH)
 
 
-def pick_next_article(articles_by_day, posted_days):
-    for day_index in sorted(articles_by_day):
+def pick_next_article(articles_by_day, posted_days, offset=0):
+    """未投稿の記事を1つ選ぶ。offsetを指定すると、ローテーションの開始位置を
+    ずらせる（Slack版と同じ記事バンクを使いつつ、出す記事をずらして被らないようにするため）。
+    """
+    days = sorted(articles_by_day)
+    n = len(days)
+    for i in range(n):
+        day_index = days[(offset + i) % n]
         if day_index not in posted_days:
             return articles_by_day[day_index]
     return None
@@ -173,6 +179,9 @@ def main():
 
     token = os.environ["LINE_CHANNEL_ACCESS_TOKEN"]
     articles_by_day = load_quiz_bank()
+    # Slack版(quiz_post.py)と同じ記事バンクを使うが、同じ日に同じ問題を出さないよう
+    # ローテーションを半周ずらす（Slackはday_index=1から、LINEはその半周先から開始）。
+    offset = len(articles_by_day) // 2
 
     if phase == "question":
         pending = load_state()
@@ -181,13 +190,13 @@ def main():
             return
 
         posted_days = load_posted_days()
-        article = pick_next_article(articles_by_day, posted_days)
+        article = pick_next_article(articles_by_day, posted_days, offset=offset)
         if article is None:
             # 全部投稿し終えたのでリセットして最初の記事から再開する
             posted_days = set()
             with open(POSTED_LOG_PATH, "w", encoding="utf-8") as f:
                 f.write("")
-            article = articles_by_day[sorted(articles_by_day)[0]]
+            article = pick_next_article(articles_by_day, posted_days, offset=offset)
 
         line_broadcast(token, build_quiz_message(article))
         save_state(article["day_index"])

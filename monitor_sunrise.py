@@ -46,7 +46,7 @@ def scan():
             body = page.locator('body').inner_text()
             compact = ''.join(body.split())
             if not all(text in compact for text in [train, '岡山', '東京', '22:34', '07:08', '9月24日']):
-                raise RuntimeError('Unexpected date, train or route')
+                raise RuntimeError('Unexpected date, train or route: ' + compact[:5000])
             table = page.get_by_text('特急' + train, exact=True).locator('xpath=following::table[1]')
             rows = table.evaluate("e => Array.from(e.rows, r => Array.from(r.cells, c => (c.innerText + ' ' + Array.from(c.querySelectorAll('img'), i => i.alt).join(' ')).trim()))")
             print(train, json.dumps(rows, ensure_ascii=False), flush=True)

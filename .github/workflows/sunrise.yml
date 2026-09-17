@@ -1,0 +1,55 @@
+name: sunrise-availability-monitor
+on:
+  workflow_dispatch:
+    inputs:
+      notify:
+        description: Send alerts for newly available seats
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      notify:
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: sunrise-availability
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check monitoring window
+        id: window
+        run: |
+          python3 - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          now = datetime.now(ZoneInfo('Asia/Tokyo'))
+          active = now < datetime(2026, 9, 24, 22, 34, tzinfo=now.tzinfo) and 5 <= now.hour and not (now.hour == 23 and now.minute >= 30)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('active=' + str(active).lower() + '\n')
+          PY
+      - uses: actions/setup-python@v5
+        if: steps.window.outputs.active == 'true'
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        if: steps.window.outputs.active == 'true'
+        run: |
+          pip install requests playwright
+          python -m playwright install --with-deps chromium
+      - name: Read availability and notify new openings
+        if: steps.window.outputs.active == 'true'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+          SUNRISE_NOTIFY: ${{ inputs.notify && '1' || '0' }}
+        run: python monitor_sunrise.py
+      - name: Persist delivered availability
+        if: steps.window.outputs.active == 'true' && inputs.notify
+        run: bash .github/scripts/persist-sunrise-state.sh

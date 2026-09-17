@@ -31,18 +31,21 @@ def classify(rows):
     return available
 
 
+def search_url(train):
+    # Exact public result URL observed in the e5489 browser UI.
+    train_code = '%BB%BE%C4%20%20000' if train == 'サンライズ瀬戸' else '%BB%B2%BD%D3%20000'
+    return ('https://e5489.jr-odekake.net/e5489/cspc/CBDayTimeArriveSelRsvMyDiaPC?'
+        'inputDepartStName=%89%AA%8ER&inputArriveStName=%93%8C%8B%9E&inputType=0&inputDate=20260924&inputHour=22&inputMinute=00&inputUniqueDepartSt=1&inputUniqueArriveSt=1&inputSearchType=2&inputTransferDepartStName1=%89%AA%8ER&inputTransferArriveStName1=%93%8C%8B%9E&inputTransferDepartStUnique1=1&inputTransferArriveStUnique1=1&inputTransferTrainType1=0001&inputSpecificTrainType1=2&inputSpecificBriefTrainKana1='
+        + train_code + '&SequenceType=0&inputReturnUrl=goyoyaku/campaign/sunriseseto_izumo/form.html&RTURL=https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html&')
+
+
 def scan_once():
     available = {}
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         page = browser.new_page(locale='ja-JP')
         for train in ['サンライズ瀬戸', 'サンライズ出雲']:
-            # Exact public result URL observed in the e5489 browser UI.
-            train_code = '%BB%BE%C4%20%20000' if train == 'サンライズ瀬戸' else '%BB%B2%BD%D3%20000'
-            search_url = ('https://e5489.jr-odekake.net/e5489/cspc/CBDayTimeArriveSelRsvMyDiaPC?'
-                'inputDepartStName=%89%AA%8ER&inputArriveStName=%93%8C%8B%9E&inputType=0&inputDate=20260924&inputHour=22&inputMinute=00&inputUniqueDepartSt=1&inputUniqueArriveSt=1&inputSearchType=2&inputTransferDepartStName1=%89%AA%8ER&inputTransferArriveStName1=%93%8C%8B%9E&inputTransferDepartStUnique1=1&inputTransferArriveStUnique1=1&inputTransferTrainType1=0001&inputSpecificTrainType1=2&inputSpecificBriefTrainKana1='
-                + train_code + '&SequenceType=0&inputReturnUrl=goyoyaku/campaign/sunriseseto_izumo/form.html&RTURL=https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html&')
-            page.goto(search_url, wait_until='load')
+            page.goto(search_url(train), wait_until='load')
             try:
                 page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()
             except Exception:
@@ -91,6 +94,8 @@ def main():
         lines = ['🚆 サンライズ 空席アラート', '2026/9/24(木) 岡山22:34 → 東京9/25(金)07:08／大人1名', f'確認: {now:%m/%d %H:%M} JST']
         for key, status in opened.items():
             lines.append('・' + key.replace('普通車指定席', 'ノビノビ座席') + '：' + status)
+        for train in sorted({key.split(' / ')[0] for key in opened}):
+            lines.append(f'<{search_url(train)}|{train}：9/24 岡山→東京の検索結果を開く>')
         lines.extend(['A寝台＝シングルデラックス。B寝台はシングルツイン／シングル／ソロ／サンライズツインの総合表示で、空いている個室の種類は予約ページでご確認ください。', '料金：この検索画面では未表示。予約画面でご確認ください。', 'サンライズツインは1名利用でも2名分の料金券が必要です。', f'<{URL}|e5489で空席を確認して予約する>', '空席は変動します。自動予約・購入は行っていません。'])
         response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json={'channel': os.environ.get('SLACK_CHANNEL_PB') or 'C0BJ3ETJ1H7', 'text': '\n'.join(lines), 'unfurl_links': False}, timeout=30)
         response.raise_for_status()

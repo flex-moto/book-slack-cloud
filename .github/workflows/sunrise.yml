@@ -30,7 +30,8 @@ jobs:
           from datetime import datetime
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo('Asia/Tokyo'))
-          active = now < datetime(2026, 9, 24, 22, 34, tzinfo=now.tzinfo) and 5 <= now.hour and not (now.hour == 23 and now.minute >= 30)
+          minute = now.hour * 60 + now.minute
+          active = now < datetime(2026, 9, 24, 22, 34, tzinfo=now.tzinfo) and (5 <= minute < 110 or 330 <= minute < 1430)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('active=' + str(active).lower() + '\n')
           PY

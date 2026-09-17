@@ -65,7 +65,8 @@ def main():
     if now >= DEPARTURE:
         print('Departure passed; monitoring ended.')
         return
-    if now.hour < 5 or (now.hour == 23 and now.minute >= 30):
+    minute = now.hour * 60 + now.minute
+    if not (5 <= minute < 110 or 330 <= minute < 1430):
         print('Outside booking service hours; skipped.')
         return
     current = scan()

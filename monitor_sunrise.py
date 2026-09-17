@@ -36,16 +36,12 @@ def scan():
         browser = pw.chromium.launch()
         page = browser.new_page(locale='ja-JP')
         for train in ['サンライズ瀬戸', 'サンライズ出雲']:
-            page.goto(URL, wait_until='load')
-            page.locator('#member-no').click()
-            for selector, label in [('jsSelectYear', '2026年'), ('jsSelectMonth', '9月'), ('jsSelectDay', '24日'), ('jsSelectHour', '22'), ('jsSelectMinute', '00'), ('jsSelectTrainType', train), ('inputDepartStName', '岡山'), ('inputArriveStName', '東京')]:
-                page.locator('#' + selector).select_option(label=label)
-            page.locator('#radio-box-1').check()
-            for selector, label in [('jsSelectDay', '24日'), ('jsSelectHour', '22'), ('jsSelectMinute', '00'), ('jsSelectTrainType', train), ('inputDepartStName', '岡山'), ('inputArriveStName', '東京')]:
-                selected = page.locator('#' + selector + ' option:checked').inner_text()
-                if selected.strip() != label:
-                    raise RuntimeError('Search form reset unexpectedly: ' + selector)
-            page.locator('#submitButton').click()
+            # Exact public result URL observed in the e5489 browser UI.
+            train_code = '%BB%BE%C4%20%20000' if train == 'サンライズ瀬戸' else '%BB%B2%BD%D3%20000'
+            search_url = ('https://e5489.jr-odekake.net/e5489/cspc/CBDayTimeArriveSelRsvMyDiaPC?'
+                'inputDepartStName=%89%AA%8ER&inputArriveStName=%93%8C%8B%9E&inputType=0&inputDate=20260924&inputHour=22&inputMinute=00&inputUniqueDepartSt=1&inputUniqueArriveSt=1&inputSearchType=2&inputTransferDepartStName1=%89%AA%8ER&inputTransferArriveStName1=%93%8C%8B%9E&inputTransferDepartStUnique1=1&inputTransferArriveStUnique1=1&inputTransferTrainType1=0001&inputSpecificTrainType1=2&inputSpecificBriefTrainKana1='
+                + train_code + '&SequenceType=0&inputReturnUrl=goyoyaku/campaign/sunriseseto_izumo/form.html&RTURL=https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html&')
+            page.goto(search_url, wait_until='load')
             try:
                 page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()
             except Exception:

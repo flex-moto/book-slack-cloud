@@ -50,6 +50,9 @@ jobs:
           SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
           SUNRISE_NOTIFY: ${{ inputs.notify && '1' || '0' }}
         run: python monitor_sunrise.py
+      - name: Test notification behavior
+        if: steps.window.outputs.active == 'true'
+        run: python -m unittest test_sunrise.py
       - name: Persist delivered availability
         if: steps.window.outputs.active == 'true' && inputs.notify
         run: bash .github/scripts/persist-sunrise-state.sh

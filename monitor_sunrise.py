@@ -1,12 +1,13 @@
 """Read-only Sunrise availability monitor; never selects or reserves a seat."""
 import json
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as BrowserTimeout
 
 URL = 'https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html'
 JST = ZoneInfo('Asia/Tokyo')
@@ -30,7 +31,7 @@ def classify(rows):
     return available
 
 
-def scan():
+def scan_once():
     available = {}
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
@@ -58,6 +59,17 @@ def scan():
                 available[train + ' / ' + category] = status
         browser.close()
     return available
+
+
+def scan():
+    for attempt in range(2):
+        try:
+            return scan_once()
+        except (BrowserTimeout, RuntimeError):
+            if attempt:
+                raise
+            print('Search temporarily unavailable; retrying once after 30 seconds.', flush=True)
+            time.sleep(30)
 
 
 def main():

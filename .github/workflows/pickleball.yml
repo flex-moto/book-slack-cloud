@@ -23,6 +23,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  sunrise:
+    uses: ./.github/workflows/sunrise.yml
+    with:
+      notify: true
+    secrets: inherit
   monitor:
     runs-on: ubuntu-latest
     steps:

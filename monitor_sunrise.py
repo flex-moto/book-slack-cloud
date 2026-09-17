@@ -42,7 +42,11 @@ def scan():
                 page.locator('#' + selector).select_option(label=label)
             page.locator('#radio-box-1').check()
             page.locator('#submitButton').click()
-            page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()
+            try:
+                page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()
+            except Exception:
+                print('Public search error page:', page.locator('body').inner_text()[:6000], flush=True)
+                raise
             body = page.locator('body').inner_text()
             compact = ''.join(body.split())
             if not all(text in compact for text in [train, '岡山', '東京', '22:34', '07:08', '9月24日']):

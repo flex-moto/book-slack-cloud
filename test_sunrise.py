@@ -8,6 +8,41 @@ from monitor_sunrise import classify
 
 
 class AvailabilityTests(unittest.TestCase):
+    def test_known_service_pages(self):
+        for text, error in [('ただいま受付時間外です。【20100941】', monitor.BookingServiceClosed),
+                            ('混雑中です。【20100946】', monitor.BookingServiceBusy)]:
+            with self.subTest(text=text), self.assertRaises(error):
+                monitor.check_service_message(text)
+        monitor.check_service_message('新規予約 経路・設備選択')
+
+    def test_busy_retries_then_recovers(self):
+        with patch.object(monitor, 'scan_once', side_effect=[monitor.BookingServiceBusy(), monitor.BrowserTimeout('timeout'), {}]) as scan, patch.object(monitor.time, 'sleep') as sleep:
+            self.assertEqual(monitor.scan(), {})
+            self.assertEqual(scan.call_count, 3)
+            self.assertEqual([c.args[0] for c in sleep.call_args_list], [30, 60])
+
+    def test_persistent_busy_still_fails(self):
+        with patch.object(monitor, 'scan_once', side_effect=monitor.BookingServiceBusy()), patch.object(monitor.time, 'sleep'), self.assertRaises(monitor.BookingServiceBusy):
+            monitor.scan()
+
+    def test_unknown_layout_is_not_hidden_or_retried(self):
+        with patch.object(monitor, 'scan_once', side_effect=RuntimeError('layout')) as scan, patch.object(monitor.time, 'sleep') as sleep, self.assertRaises(RuntimeError):
+            monitor.scan()
+        self.assertEqual(scan.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_maintenance_preserves_state_and_never_notifies(self):
+        with TemporaryDirectory() as directory:
+            state = Path(directory) / 'state.json'
+            state.write_text('{"room": "空席あり"}')
+            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan_once', side_effect=monitor.BookingServiceClosed()) as scan, patch.object(monitor.time, 'sleep') as sleep, patch.object(monitor, 'send_alert') as send:
+                clock.now.return_value = datetime(2026, 9, 18, 1, 30, tzinfo=monitor.JST)
+                monitor.main()
+                self.assertEqual(state.read_text(), '{"room": "空席あり"}')
+                self.assertEqual(scan.call_count, 1)
+                sleep.assert_not_called()
+                send.assert_not_called()
+
     def test_real_test_payload_uses_test_date_and_label(self):
         target = datetime(2026, 10, 14, 22, 34, tzinfo=monitor.JST)
         with patch.dict('os.environ', {'SLACK_BOT_TOKEN': 'test'}), patch.object(monitor.requests, 'post') as post:

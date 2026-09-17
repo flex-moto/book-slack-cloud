@@ -15,6 +15,21 @@ DEPARTURE = datetime(2026, 9, 24, 22, 34, tzinfo=JST)
 STATE = Path('sunrise_state.json')
 
 
+class BookingServiceClosed(RuntimeError):
+    pass
+
+
+class BookingServiceBusy(RuntimeError):
+    pass
+
+
+def check_service_message(body):
+    if '20100941' in body or 'ただいま受付時間外です' in body:
+        raise BookingServiceClosed('e5489 is outside reception hours or under maintenance')
+    if '20100946' in body or '混雑中です' in body:
+        raise BookingServiceBusy('e5489 is temporarily busy')
+
+
 
 def classify(rows):
     """Pair headings with statuses; ignore explanatory legends outside table."""
@@ -46,10 +61,11 @@ def scan_once(departure=DEPARTURE):
         page = browser.new_page(locale='ja-JP')
         for train in ['サンライズ瀬戸', 'サンライズ出雲']:
             page.goto(search_url(train, departure), wait_until='load')
+            check_service_message(page.locator('body').inner_text())
             try:
                 page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()
-            except Exception:
-                print('Public search error page:', page.locator('body').inner_text()[:6000], flush=True)
+            except BrowserTimeout:
+                check_service_message(page.locator('body').inner_text())
                 raise
             body = page.locator('body').inner_text()
             compact = ''.join(body.split())
@@ -65,14 +81,18 @@ def scan_once(departure=DEPARTURE):
 
 
 def scan(departure=DEPARTURE):
-    for attempt in range(2):
+    for attempt in range(3):
         try:
             return scan_once(departure)
-        except (BrowserTimeout, RuntimeError):
-            if attempt:
+        except BookingServiceClosed:
+            # A maintenance closure is not a sold-out result. Never alter state.
+            raise
+        except (BrowserTimeout, BookingServiceBusy):
+            if attempt == 2:
                 raise
-            print('Search temporarily unavailable; retrying once after 30 seconds.', flush=True)
-            time.sleep(30)
+            delay = 30 * (attempt + 1)
+            print(f'Search temporarily unavailable; retrying after {delay} seconds.', flush=True)
+            time.sleep(delay)
 
 
 def send_alert(opened, departure=DEPARTURE, *, test=False, confirmed_at=None):
@@ -104,7 +124,15 @@ def main():
     if not (5 <= minute < 110 or 330 <= minute < 1430):
         print('Outside booking service hours; skipped.')
         return
-    current = scan()
+    try:
+        current = scan()
+    except BookingServiceClosed as error:
+        message = f'Skipped: {error}. Availability was not checked; previous state preserved.'
+        print(message, flush=True)
+        if os.environ.get('GITHUB_STEP_SUMMARY'):
+            with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+                summary.write(message + '\n')
+        return
     previous = json.loads(STATE.read_text()) if STATE.exists() else {}
     opened = {key: value for key, value in current.items() if key not in previous}
     if os.environ.get('SUNRISE_NOTIFY') != '1':

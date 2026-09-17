@@ -8,6 +8,18 @@ from monitor_sunrise import classify
 
 
 class AvailabilityTests(unittest.TestCase):
+    def test_real_test_payload_uses_test_date_and_label(self):
+        target = datetime(2026, 10, 14, 22, 34, tzinfo=monitor.JST)
+        with patch.dict('os.environ', {'SLACK_BOT_TOKEN': 'test'}), patch.object(monitor.requests, 'post') as post:
+            post.return_value.json.return_value = {'ok': True}
+            monitor.send_alert({'サンライズ瀬戸 / 普通車指定席 禁煙席': '空席あり'}, target, test=True)
+            message = post.call_args.kwargs['json']['text']
+            self.assertIn('【実地テスト】', message)
+            self.assertIn('2026/10/14', message)
+            self.assertIn('inputDate=20261014', message)
+            self.assertNotIn('inputDate=20260924', message)
+            self.assertEqual(monitor.DEPARTURE.day, 24)
+
     def test_sold_out(self):
         self.assertEqual(classify([['普通車指定席 禁煙席', 'B寝台 禁煙個室'], ['残席なし', '残席なし']]), {})
 

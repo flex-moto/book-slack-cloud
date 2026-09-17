@@ -1,0 +1,33 @@
+name: sunrise-live-notification-test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sunrise-live-test
+  cancel-in-progress: false
+jobs:
+  real-availability-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install requests playwright
+          python -m playwright install --with-deps chromium
+      - name: Verify notification logic
+        run: python -m unittest test_sunrise.py
+      - name: Scan real availability and send labeled test alert
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+        run: python live_test_sunrise.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sunrise-live-test-receipt
+          path: sunrise_live_test_receipt.json
+          retention-days: 7

@@ -36,11 +36,15 @@ def scan():
         browser = pw.chromium.launch()
         page = browser.new_page(locale='ja-JP')
         for train in ['サンライズ瀬戸', 'サンライズ出雲']:
-            page.goto(URL, wait_until='domcontentloaded')
+            page.goto(URL, wait_until='load')
             page.locator('#member-no').click()
             for selector, label in [('jsSelectYear', '2026年'), ('jsSelectMonth', '9月'), ('jsSelectDay', '24日'), ('jsSelectHour', '22'), ('jsSelectMinute', '00'), ('jsSelectTrainType', train), ('inputDepartStName', '岡山'), ('inputArriveStName', '東京')]:
                 page.locator('#' + selector).select_option(label=label)
             page.locator('#radio-box-1').check()
+            for selector, label in [('jsSelectDay', '24日'), ('jsSelectHour', '22'), ('jsSelectMinute', '00'), ('jsSelectTrainType', train), ('inputDepartStName', '岡山'), ('inputArriveStName', '東京')]:
+                selected = page.locator('#' + selector + ' option:checked').inner_text()
+                if selected.strip() != label:
+                    raise RuntimeError('Search form reset unexpectedly: ' + selector)
             page.locator('#submitButton').click()
             try:
                 page.get_by_role('heading', name='新規予約 経路・設備選択').wait_for()

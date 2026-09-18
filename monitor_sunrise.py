@@ -13,6 +13,7 @@ URL = 'https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html'
 JST = ZoneInfo('Asia/Tokyo')
 DEPARTURE = datetime(2026, 9, 24, 22, 34, tzinfo=JST)
 STATE = Path('sunrise_state.json')
+HEALTH = Path('sunrise_health.json')
 DEFAULT_CHANNEL = 'C0C2LSTJD1T'
 
 
@@ -151,12 +152,46 @@ def send_alert(opened, departure=DEPARTURE, *, closed=None, status_update=False,
              'url': booking_url(train, departure)}
             for index, train in enumerate(trains)
         ]})
+    return post_slack(payload)
+
+
+def post_slack(payload):
     response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json=payload, timeout=30)
     response.raise_for_status()
     if not response.json().get('ok'):
         raise RuntimeError('Slack delivery failed: ' + response.json().get('error', 'unknown'))
     print('Sunrise notification delivered to channel:', response.json().get('channel'), flush=True)
     return response.json()
+
+
+def record_health(*, busy, now):
+    """Persist incident notification state separately from seat availability."""
+    if os.environ.get('SUNRISE_NOTIFY') != '1':
+        return
+    health = json.loads(HEALTH.read_text()) if HEALTH.exists() else {}
+    if busy:
+        if not health:
+            health = {'since': now.isoformat(), 'alerted': False}
+        since = datetime.fromisoformat(health['since'])
+        if now - since >= timedelta(hours=1) and not health['alerted']:
+            post_slack({
+                'channel': os.environ.get('SLACK_CHANNEL_SUNRISE') or DEFAULT_CHANNEL,
+                'text': ('⚠️ サンライズ：空席確認ができていません\n'
+                         f'予約サイトの混雑が続き、{since:%m/%d %H:%M} JSTから1時間以上確認できていません。\n'
+                         '約15分後に再確認します。前回の空席情報は保持しています。'),
+                'unfurl_links': False,
+            })
+            health['alerted'] = True
+    else:
+        if health.get('alerted'):
+            post_slack({
+                'channel': os.environ.get('SLACK_CHANNEL_SUNRISE') or DEFAULT_CHANNEL,
+                'text': f'✅ サンライズ：監視が復旧しました\n{now:%m/%d %H:%M} JSTに空席確認が成功しました。',
+                'unfurl_links': False,
+            })
+        health = {}
+    # Failed Slack delivery raises before updating the notification marker.
+    HEALTH.write_text(json.dumps(health, ensure_ascii=False, indent=2) + '\n')
 
 
 def main():
@@ -170,6 +205,10 @@ def main():
         return
     try:
         current = scan()
+    except BookingServiceBusy:
+        print('Booking site busy after retries; defer to next scheduled check. Seat state preserved.', flush=True)
+        record_health(busy=True, now=datetime.now(JST))
+        return
     except BookingServiceClosed as error:
         message = f'Skipped: {error}. Availability was not checked; previous state preserved.'
         print(message, flush=True)
@@ -183,6 +222,7 @@ def main():
     if os.environ.get('SUNRISE_NOTIFY') != '1':
         print('Dry run: availability changes:', json.dumps({'opened': opened, 'closed': closed}, ensure_ascii=False))
         return
+    record_health(busy=False, now=datetime.now(JST))
     status_update = os.environ.get('SUNRISE_STATUS_UPDATE') == '1'
     if opened or closed or status_update:
         send_alert(current if status_update else opened, closed=closed, status_update=status_update, confirmed_at=datetime.now(JST))

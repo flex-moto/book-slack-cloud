@@ -8,6 +8,67 @@ from monitor_sunrise import classify
 
 
 class AvailabilityTests(unittest.TestCase):
+    def setUp(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        health_patch = patch.object(monitor, 'HEALTH', Path(directory.name) / 'health.json')
+        health_patch.start()
+        self.addCleanup(health_patch.stop)
+
+    def test_busy_incident_notifies_once_after_hour_and_recovers_once(self):
+        from datetime import timedelta
+        start = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+        with patch.dict('os.environ', {'SUNRISE_NOTIFY': '1'}), patch.object(monitor, 'post_slack') as post:
+            for minute in [0, 15, 30, 45, 59]:
+                monitor.record_health(busy=True, now=start + timedelta(minutes=minute))
+            post.assert_not_called()
+            monitor.record_health(busy=True, now=start + timedelta(hours=1))
+            self.assertEqual(post.call_count, 1)
+            self.assertIn('空席確認ができていません', post.call_args.args[0]['text'])
+            monitor.record_health(busy=True, now=start + timedelta(hours=2))
+            self.assertEqual(post.call_count, 1)
+            monitor.record_health(busy=False, now=start + timedelta(hours=3))
+            self.assertEqual(post.call_count, 2)
+            self.assertIn('監視が復旧しました', post.call_args.args[0]['text'])
+            monitor.record_health(busy=False, now=start + timedelta(hours=4))
+            self.assertEqual(post.call_count, 2)
+
+    def test_short_incident_and_dry_run_are_silent(self):
+        now = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+        with patch.dict('os.environ', {'SUNRISE_NOTIFY': '0'}), patch.object(monitor, 'post_slack') as post:
+            monitor.record_health(busy=True, now=now)
+            self.assertFalse(monitor.HEALTH.exists())
+            post.assert_not_called()
+        with patch.dict('os.environ', {'SUNRISE_NOTIFY': '1'}), patch.object(monitor, 'post_slack') as post:
+            monitor.record_health(busy=True, now=now)
+            monitor.record_health(busy=False, now=now)
+            post.assert_not_called()
+            self.assertEqual(monitor.HEALTH.read_text(), '{}\n')
+
+    def test_health_delivery_failure_retries_without_marking_sent(self):
+        from datetime import timedelta
+        now = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+        with patch.dict('os.environ', {'SUNRISE_NOTIFY': '1'}):
+            monitor.record_health(busy=True, now=now)
+            before = monitor.HEALTH.read_text()
+            with patch.object(monitor, 'post_slack', side_effect=RuntimeError('delivery failed')), self.assertRaises(RuntimeError):
+                monitor.record_health(busy=True, now=now + timedelta(hours=1))
+            self.assertEqual(monitor.HEALTH.read_text(), before)
+
+    def test_busy_main_preserves_seats_and_succeeds_but_unexpected_error_fails(self):
+        with TemporaryDirectory() as directory:
+            state = Path(directory) / 'state.json'
+            state.write_text('{"room": "空席あり"}')
+            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan', side_effect=monitor.BookingServiceBusy()), patch.dict('os.environ', {'SUNRISE_NOTIFY': '1'}), patch.object(monitor, 'post_slack') as post:
+                clock.now.return_value = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+                clock.fromisoformat.side_effect = datetime.fromisoformat
+                monitor.main()
+                post.assert_not_called()
+                self.assertEqual(state.read_text(), '{"room": "空席あり"}')
+                self.assertTrue(monitor.HEALTH.exists())
+                with patch.object(monitor, 'scan', side_effect=RuntimeError('bad layout')), self.assertRaises(RuntimeError):
+                    monitor.main()
+
     def test_filled_seats_notify_once_and_reopening_notifies(self):
         room = 'サンライズ出雲 / A寝台 禁煙個室'
         with TemporaryDirectory() as directory:

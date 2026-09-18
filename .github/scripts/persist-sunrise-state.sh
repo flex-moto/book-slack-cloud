@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-state_files=(sunrise_state.json)
+state_files=(sunrise_state.json sunrise_health.json)
 
 if [[ -z "$(git status --porcelain -- "${state_files[@]}")" ]]; then
   echo "No sunrise state changes to persist."

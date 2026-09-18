@@ -121,10 +121,27 @@ def send_alert(opened, departure=DEPARTURE, *, closed=None, status_update=False,
         lines.append('前回空いていた以下の席は埋まりました：')
         for key in closed:
             lines.append('・' + key.replace('普通車指定席', 'ノビノビ座席') + '：空席なし')
-    for train in sorted({key.split(' / ')[0] for key in set(opened) | set(closed)}):
-        lines.append(f'<{search_url(train, departure)}|{train}：{departure.month}/{departure.day} 岡山→東京の検索結果を開く>')
-    lines.extend(['A寝台＝シングルデラックス。B寝台はシングルツイン／シングル／ソロ／サンライズツインの総合表示で、空いている個室の種類は予約ページでご確認ください。', '料金：この検索画面では未表示。予約画面でご確認ください。', 'サンライズツインは1名利用でも2名分の料金券が必要です。', f'<{URL}|e5489で空席を確認して予約する>', '空席は変動します。自動予約・購入は行っていません。'])
-    response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json={'channel': os.environ.get('SLACK_CHANNEL_SUNRISE') or DEFAULT_CHANNEL, 'text': '\n'.join(lines), 'unfurl_links': False}, timeout=30)
+    trains = sorted({key.split(' / ')[0] for key in set(opened) | set(closed)})
+    if status_update:
+        trains = ['サンライズ瀬戸', 'サンライズ出雲']
+    for train in trains:
+        lines.append(f'<{search_url(train, departure)}|{train}：{departure.month}/{departure.day} 岡山→東京の予約画面へ>')
+    lines.append('リンク先は日付・区間・列車を指定済みの「新規予約 経路・設備選択」です。空席のある設備を選び「選択する」からお進みください。満席の場合は選択できません。')
+    lines.extend(['A寝台＝シングルデラックス。B寝台はシングルツイン／シングル／ソロ／サンライズツインの総合表示で、空いている個室の種類は予約ページでご確認ください。', '料金：この検索画面では未表示。予約画面でご確認ください。', 'サンライズツインは1名利用でも2名分の料金券が必要です。', '空席は変動します。自動予約・購入は行っていません。'])
+    text = '\n'.join(lines)
+    payload = {
+        'channel': os.environ.get('SLACK_CHANNEL_SUNRISE') or DEFAULT_CHANNEL,
+        'text': text, 'unfurl_links': False,
+        'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': text}}],
+    }
+    if trains:
+        payload['blocks'].append({'type': 'actions', 'elements': [
+            {'type': 'button', 'action_id': f'book_sunrise_{index}',
+             'text': {'type': 'plain_text', 'text': f'{train}の予約画面へ'},
+             'url': search_url(train, departure)}
+            for index, train in enumerate(trains)
+        ]})
+    response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json=payload, timeout=30)
     response.raise_for_status()
     if not response.json().get('ok'):
         raise RuntimeError('Slack delivery failed: ' + response.json().get('error', 'unknown'))

@@ -101,6 +101,12 @@ class AvailabilityTests(unittest.TestCase):
             self.assertIn('inputDate=20261014', message)
             self.assertNotIn('inputDate=20260924', message)
             self.assertEqual(monitor.DEPARTURE.day, 24)
+            payload = post.call_args.kwargs['json']
+            button = payload['blocks'][-1]['elements'][0]
+            self.assertEqual(button['url'], monitor.search_url('サンライズ瀬戸', target))
+            self.assertIn('予約画面へ', button['text']['text'])
+            self.assertNotIn('|e5489で空席を確認して予約する>', message)
+            self.assertLess(len(payload['blocks'][0]['text']['text']), 3000)
 
     def test_sold_out(self):
         self.assertEqual(classify([['普通車指定席 禁煙席', 'B寝台 禁煙個室'], ['残席なし', '残席なし']]), {})

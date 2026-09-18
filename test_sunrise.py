@@ -55,6 +55,16 @@ class AvailabilityTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             classify([[], []])
 
+    def test_booking_links_are_ascii_and_bound_to_date_and_train(self):
+        links = {monitor.booking_url(train) for train in ['サンライズ瀬戸', 'サンライズ出雲']}
+        self.assertEqual(len(links), 2)
+        for link in links:
+            self.assertTrue(link.startswith('https://tinyurl.com/'))
+            self.assertTrue(link.isascii())
+            self.assertNotIn('%', link)
+        with self.assertRaises(ValueError):
+            monitor.booking_url('サンライズ出雲', datetime(2026, 9, 25))
+
     def test_known_service_pages(self):
         for text, error in [('ただいま受付時間外です。【20100941】', monitor.BookingServiceClosed),
                             ('混雑中です。【20100946】', monitor.BookingServiceBusy)]:
@@ -98,12 +108,14 @@ class AvailabilityTests(unittest.TestCase):
             message = post.call_args.kwargs['json']['text']
             self.assertIn('【実地テスト】', message)
             self.assertIn('2026/10/14', message)
-            self.assertIn('inputDate=20261014', message)
+            self.assertIn(monitor.booking_url('サンライズ瀬戸', target), message)
             self.assertNotIn('inputDate=20260924', message)
             self.assertEqual(monitor.DEPARTURE.day, 24)
             payload = post.call_args.kwargs['json']
             button = payload['blocks'][-1]['elements'][0]
-            self.assertEqual(button['url'], monitor.search_url('サンライズ瀬戸', target))
+            self.assertEqual(button['url'], monitor.booking_url('サンライズ瀬戸', target))
+            self.assertNotIn('%', button['url'])
+            self.assertNotIn('inputDepartStName=', message)
             self.assertIn('予約画面へ', button['text']['text'])
             self.assertNotIn('|e5489で空席を確認して予約する>', message)
             self.assertLess(len(payload['blocks'][0]['text']['text']), 3000)
@@ -126,7 +138,7 @@ class AvailabilityTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             state = Path(directory) / 'state.json'
             state.write_text('{}')
-            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan', return_value={'瀬戸 / B寝台 禁煙個室': '空席あり'}), patch.dict('os.environ', {'SUNRISE_NOTIFY': '1', 'SLACK_BOT_TOKEN': 'test'}), patch.object(monitor.requests, 'post') as post:
+            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan', return_value={'サンライズ瀬戸 / B寝台 禁煙個室': '空席あり'}), patch.dict('os.environ', {'SUNRISE_NOTIFY': '1', 'SLACK_BOT_TOKEN': 'test'}), patch.object(monitor.requests, 'post') as post:
                 clock.now.return_value = datetime(2026, 9, 17, 16, 0, tzinfo=monitor.JST)
                 post.return_value.json.return_value = {'ok': False, 'error': 'not_in_channel'}
                 with self.assertRaises(RuntimeError):

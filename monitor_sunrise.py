@@ -55,6 +55,16 @@ def search_url(train, departure=DEPARTURE):
         + train_code + '&SequenceType=0&inputReturnUrl=goyoyaku/campaign/sunriseseto_izumo/form.html&RTURL=https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html&')
 
 
+def booking_url(train, departure=DEPARTURE):
+    # Slack re-encodes non-UTF-8 (%89 etc.) bytes in e5489's Shift-JIS URL.
+    # These ASCII redirects were verified to preserve the exact search URL.
+    links = json.loads(Path(__file__).with_name('sunrise_booking_links.json').read_text())
+    try:
+        return links[departure.strftime('%Y-%m-%d')][train]
+    except KeyError:
+        raise ValueError('Create and verify a booking redirect for this date and train') from None
+
+
 def scan_once(departure=DEPARTURE):
     available = {}
     with sync_playwright() as pw:
@@ -125,7 +135,7 @@ def send_alert(opened, departure=DEPARTURE, *, closed=None, status_update=False,
     if status_update:
         trains = ['サンライズ瀬戸', 'サンライズ出雲']
     for train in trains:
-        lines.append(f'<{search_url(train, departure)}|{train}：{departure.month}/{departure.day} 岡山→東京の予約画面へ>')
+        lines.append(f'<{booking_url(train, departure)}|{train}：{departure.month}/{departure.day} 岡山→東京の予約画面へ>')
     lines.append('リンク先は日付・区間・列車を指定済みの「新規予約 経路・設備選択」です。空席のある設備を選び「選択する」からお進みください。満席の場合は選択できません。')
     lines.extend(['A寝台＝シングルデラックス。B寝台はシングルツイン／シングル／ソロ／サンライズツインの総合表示で、空いている個室の種類は予約ページでご確認ください。', '料金：この検索画面では未表示。予約画面でご確認ください。', 'サンライズツインは1名利用でも2名分の料金券が必要です。', '空席は変動します。自動予約・購入は行っていません。'])
     text = '\n'.join(lines)
@@ -138,7 +148,7 @@ def send_alert(opened, departure=DEPARTURE, *, closed=None, status_update=False,
         payload['blocks'].append({'type': 'actions', 'elements': [
             {'type': 'button', 'action_id': f'book_sunrise_{index}',
              'text': {'type': 'plain_text', 'text': f'{train}の予約画面へ'},
-             'url': search_url(train, departure)}
+             'url': booking_url(train, departure)}
             for index, train in enumerate(trains)
         ]})
     response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json=payload, timeout=30)

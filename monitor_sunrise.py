@@ -13,6 +13,7 @@ URL = 'https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html'
 JST = ZoneInfo('Asia/Tokyo')
 DEPARTURE = datetime(2026, 9, 24, 22, 34, tzinfo=JST)
 STATE = Path('sunrise_state.json')
+DEFAULT_CHANNEL = 'C0C2LSTJD1T'
 
 
 class BookingServiceClosed(RuntimeError):
@@ -33,7 +34,7 @@ def check_service_message(body):
 
 def classify(rows):
     """Pair headings with statuses; ignore explanatory legends outside table."""
-    if len(rows) != 2 or len(rows[0]) != len(rows[1]):
+    if len(rows) != 2 or not rows[0] or len(rows[0]) != len(rows[1]):
         raise RuntimeError('Unexpected availability table shape')
     available = {}
     for heading, status in zip(*rows):
@@ -73,6 +74,9 @@ def scan_once(departure=DEPARTURE):
                 raise RuntimeError('Unexpected date, train or route: ' + compact[:5000])
             table = page.get_by_text('特急' + train, exact=True).locator('xpath=following::table[1]')
             rows = table.evaluate("e => Array.from(e.rows, r => Array.from(r.cells, c => (c.innerText + ' ' + Array.from(c.querySelectorAll('img'), i => i.alt).join(' ')).trim()))")
+            expected = {'普通車指定席 禁煙席', 'B寝台 禁煙個室', 'B寝台 喫煙個室', 'A寝台 禁煙個室', 'A寝台 喫煙個室'}
+            if not rows or {heading.strip() for heading in rows[0]} != expected or len(rows[0]) != len(expected):
+                raise RuntimeError('Incomplete accommodation categories; refusing to report seats filled')
             print(train, json.dumps(rows, ensure_ascii=False), flush=True)
             for category, status in classify(rows).items():
                 available[train + ' / ' + category] = status
@@ -95,23 +99,36 @@ def scan(departure=DEPARTURE):
             time.sleep(delay)
 
 
-def send_alert(opened, departure=DEPARTURE, *, test=False, confirmed_at=None):
+def send_alert(opened, departure=DEPARTURE, *, closed=None, status_update=False, test=False, confirmed_at=None):
     now = confirmed_at or datetime.now(JST)
-    if not opened:
-        raise ValueError("No observed availability to notify")
+    closed = closed or {}
+    if not opened and not closed and not status_update:
+        raise ValueError("No observed availability change to notify")
     arrival = departure + timedelta(days=1)
-    lines = [('【実地テスト】' if test else '') + '🚆 サンライズ 空席アラート', f'{departure:%Y/%m/%d} 岡山22:34 → 東京{arrival:%m/%d}07:08／大人1名', f'確認: {now:%m/%d %H:%M} JST']
+    title = '通知先の設定完了・現在の空席状況' if status_update else ('空席状況の変化' if closed else '空席アラート')
+    lines = [('【実地テスト】' if test else '') + '🚆 サンライズ ' + title, f'{departure:%Y/%m/%d} 岡山22:34 → 東京{arrival:%m/%d}07:08／大人1名', f'確認: {now:%m/%d %H:%M} JST']
     if test:
         lines.append('通知動作の確認用です。本番の9月24日の空席通知ではありません。')
+    if status_update:
+        lines.append('このチャンネルに空席が出たとき・埋まったときの両方を通知します（約15分間隔で確認）。')
+        if not opened:
+            lines.append('現在、監視対象の空席はありません。')
+    if opened:
+        lines.append('空席があります：' if status_update else '空席が出ました：')
     for key, status in opened.items():
         lines.append('・' + key.replace('普通車指定席', 'ノビノビ座席') + '：' + status)
-    for train in sorted({key.split(' / ')[0] for key in opened}):
+    if closed:
+        lines.append('前回空いていた以下の席は埋まりました：')
+        for key in closed:
+            lines.append('・' + key.replace('普通車指定席', 'ノビノビ座席') + '：空席なし')
+    for train in sorted({key.split(' / ')[0] for key in set(opened) | set(closed)}):
         lines.append(f'<{search_url(train, departure)}|{train}：{departure.month}/{departure.day} 岡山→東京の検索結果を開く>')
     lines.extend(['A寝台＝シングルデラックス。B寝台はシングルツイン／シングル／ソロ／サンライズツインの総合表示で、空いている個室の種類は予約ページでご確認ください。', '料金：この検索画面では未表示。予約画面でご確認ください。', 'サンライズツインは1名利用でも2名分の料金券が必要です。', f'<{URL}|e5489で空席を確認して予約する>', '空席は変動します。自動予約・購入は行っていません。'])
-    response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json={'channel': os.environ.get('SLACK_CHANNEL_PB') or 'C0BJ3ETJ1H7', 'text': '\n'.join(lines), 'unfurl_links': False}, timeout=30)
+    response = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer ' + os.environ['SLACK_BOT_TOKEN']}, json={'channel': os.environ.get('SLACK_CHANNEL_SUNRISE') or DEFAULT_CHANNEL, 'text': '\n'.join(lines), 'unfurl_links': False}, timeout=30)
     response.raise_for_status()
     if not response.json().get('ok'):
         raise RuntimeError('Slack delivery failed: ' + response.json().get('error', 'unknown'))
+    print('Sunrise notification delivered to channel:', response.json().get('channel'), flush=True)
     return response.json()
 
 
@@ -135,11 +152,13 @@ def main():
         return
     previous = json.loads(STATE.read_text()) if STATE.exists() else {}
     opened = {key: value for key, value in current.items() if key not in previous}
+    closed = {key: value for key, value in previous.items() if key not in current}
     if os.environ.get('SUNRISE_NOTIFY') != '1':
-        print('Dry run: new availability:', json.dumps(opened, ensure_ascii=False))
+        print('Dry run: availability changes:', json.dumps({'opened': opened, 'closed': closed}, ensure_ascii=False))
         return
-    if opened:
-        send_alert(opened, confirmed_at=now)
+    status_update = os.environ.get('SUNRISE_STATUS_UPDATE') == '1'
+    if opened or closed or status_update:
+        send_alert(current if status_update else opened, closed=closed, status_update=status_update, confirmed_at=datetime.now(JST))
     # Only persist after a complete scan and successful delivery.
     STATE.write_text(json.dumps(current, ensure_ascii=False, indent=2) + '\n')
 

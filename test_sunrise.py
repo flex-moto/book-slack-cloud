@@ -8,6 +8,53 @@ from monitor_sunrise import classify
 
 
 class AvailabilityTests(unittest.TestCase):
+    def test_filled_seats_notify_once_and_reopening_notifies(self):
+        room = 'サンライズ出雲 / A寝台 禁煙個室'
+        with TemporaryDirectory() as directory:
+            state = Path(directory) / 'state.json'
+            state.write_text(__import__('json').dumps({room: '空席残りわずか'}))
+            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan', side_effect=[{}, {}, {room: '空席あり'}]), patch.dict('os.environ', {'SUNRISE_NOTIFY': '1', 'SUNRISE_STATUS_UPDATE': '0'}), patch.object(monitor, 'send_alert') as send:
+                clock.now.return_value = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+                monitor.main()
+                self.assertEqual(send.call_args.args[0], {})
+                self.assertEqual(send.call_args.kwargs['closed'], {room: '空席残りわずか'})
+                self.assertEqual(state.read_text(), '{}\n')
+                monitor.main()
+                self.assertEqual(send.call_count, 1)
+                monitor.main()
+                self.assertEqual(send.call_count, 2)
+                self.assertEqual(send.call_args.args[0], {room: '空席あり'})
+
+    def test_filled_notification_failure_preserves_previous_state(self):
+        with TemporaryDirectory() as directory:
+            state = Path(directory) / 'state.json'
+            state.write_text('{"room": "空席あり"}')
+            with patch.object(monitor, 'STATE', state), patch.object(monitor, 'datetime') as clock, patch.object(monitor, 'scan', return_value={}), patch.dict('os.environ', {'SUNRISE_NOTIFY': '1'}), patch.object(monitor, 'send_alert', side_effect=RuntimeError('Slack failed')):
+                clock.now.return_value = datetime(2026, 9, 18, 10, 0, tzinfo=monitor.JST)
+                with self.assertRaises(RuntimeError):
+                    monitor.main()
+                self.assertEqual(state.read_text(), '{"room": "空席あり"}')
+
+    def test_mixed_changes_use_new_channel_and_clear_labels(self):
+        with patch.dict('os.environ', {'SLACK_BOT_TOKEN': 'test', 'SLACK_CHANNEL_PB': 'old', 'SLACK_CHANNEL_SUNRISE': ''}), patch.object(monitor.requests, 'post') as post:
+            post.return_value.json.return_value = {'ok': True, 'channel': monitor.DEFAULT_CHANNEL}
+            monitor.send_alert({'サンライズ瀬戸 / B寝台 禁煙個室': '空席あり'}, closed={'サンライズ出雲 / A寝台 禁煙個室': '空席あり'})
+            payload = post.call_args.kwargs['json']
+            self.assertEqual(payload['channel'], 'C0C2LSTJD1T')
+            self.assertIn('空席が出ました', payload['text'])
+            self.assertIn('埋まりました', payload['text'])
+            self.assertIn('サンライズ出雲 / A寝台 禁煙個室：空席なし', payload['text'])
+
+    def test_channel_confirmation_can_report_no_availability(self):
+        with patch.dict('os.environ', {'SLACK_BOT_TOKEN': 'test'}), patch.object(monitor.requests, 'post') as post:
+            post.return_value.json.return_value = {'ok': True}
+            monitor.send_alert({}, status_update=True)
+            self.assertIn('現在、監視対象の空席はありません', post.call_args.kwargs['json']['text'])
+
+    def test_empty_table_is_not_sold_out(self):
+        with self.assertRaises(RuntimeError):
+            classify([[], []])
+
     def test_known_service_pages(self):
         for text, error in [('ただいま受付時間外です。【20100941】', monitor.BookingServiceClosed),
                             ('混雑中です。【20100946】', monitor.BookingServiceBusy)]:

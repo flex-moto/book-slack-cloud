@@ -24,7 +24,7 @@ jobs:
       - name: Scan real availability and send labeled test alert
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+          SLACK_CHANNEL_SUNRISE: 'C0C2LSTJD1T'
         run: python live_test_sunrise.py
       - uses: actions/upload-artifact@v4
         with:

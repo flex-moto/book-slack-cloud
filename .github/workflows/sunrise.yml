@@ -6,6 +6,10 @@ on:
         description: Send alerts for newly available seats
         type: boolean
         default: false
+      status_update:
+        description: Send current availability and channel confirmation (requires notify)
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       notify:
@@ -48,7 +52,8 @@ jobs:
         if: steps.window.outputs.active == 'true'
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+          SLACK_CHANNEL_SUNRISE: 'C0C2LSTJD1T'
+          SUNRISE_STATUS_UPDATE: ${{ inputs.status_update && '1' || '0' }}
           SUNRISE_NOTIFY: ${{ inputs.notify && '1' || '0' }}
         run: python monitor_sunrise.py
       - name: Test notification behavior

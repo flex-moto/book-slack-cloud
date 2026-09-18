@@ -23,11 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sunrise:
-    uses: ./.github/workflows/sunrise.yml
-    with:
-      notify: true
-    secrets: inherit
+  # Sunrise monitoring paused after the user completed their reservation.
   monitor:
     runs-on: ubuntu-latest
     steps:

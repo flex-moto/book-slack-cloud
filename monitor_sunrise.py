@@ -58,7 +58,7 @@ def search_url(train, departure=DEPARTURE):
 
 def booking_url(train, departure=DEPARTURE):
     # Slack re-encodes non-UTF-8 (%89 etc.) bytes in e5489's Shift-JIS URL.
-    # These ASCII redirects were verified to preserve the exact search URL.
+    # Owned static Pages redirects preserve the exact search URL.
     links = json.loads(Path(__file__).with_name('sunrise_booking_links.json').read_text())
     try:
         return links[departure.strftime('%Y-%m-%d')][train]

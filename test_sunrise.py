@@ -120,7 +120,7 @@ class AvailabilityTests(unittest.TestCase):
         links = {monitor.booking_url(train) for train in ['サンライズ瀬戸', 'サンライズ出雲']}
         self.assertEqual(len(links), 2)
         for link in links:
-            self.assertTrue(link.startswith('https://tinyurl.com/'))
+            self.assertTrue(link.startswith('https://takuyamotomura-2026.github.io/sunrise-booking-links/2026-09-24/'))
             self.assertTrue(link.isascii())
             self.assertNotIn('%', link)
         with self.assertRaises(ValueError):

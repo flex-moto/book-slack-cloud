@@ -18,7 +18,7 @@ class PersistenceTests(unittest.TestCase):
                                       capture_output=True, text=True).stdout
 
             remote = root / 'remote.git'
-            subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
+            subprocess.run(['git', 'init', '--bare', '--initial-branch=master', str(remote)], check=True, capture_output=True)
             first, second = root / 'first', root / 'second'
             git(root, 'clone', str(remote), str(first))
             git(first, 'checkout', '-b', 'master')

@@ -15,6 +15,17 @@
 - `post_book.py` … 本選び〜投稿の本体
 - APIキー等は GitHub Secrets（`ANTHROPIC_API_KEY` / `SLACK_BOT_TOKEN` / `SLACK_CHANNEL`）に保存。コードには含めない
 
+## 本データの解析と検証
+
+本の YAML front matter は PyYAML の `safe_load` で解析します。Kindle の複数行タイトル（`>-` / `|`）、引用符、日付に対応し、空や `null` の書名はファイル名にフォールバックします。概要は既存の `bookshelf-description` / `kindle-description` マーカー内から取得し、存在しなければ空のまま扱います。
+
+```sh
+python -m pip install -r requirements-book.txt
+python -m unittest discover -s tests -p 'test_post_book.py' -v
+```
+
+テストでは全冊の解析と投稿用データの組み立てまで確認します。AI / Slack / WeChat への送信は行いません。毎朝のワークフローでも投稿前に実行します。
+
 ## WeChat通知
 
 WeChat の個人チャットへ公式APIで直接投稿する仕組みはないため、まずは WeChat 内で受け取れる通知サービスに送ります。対応プロバイダは `WxPusher` と `ServerChan` です。

@@ -2,7 +2,7 @@
 """data/ 配下の Books と 読書メモ(Kindle) からランダムに1冊選び、
 AIで紹介コメントを付けて Slack / WeChat に投稿する。GitHub Actions（Mac不要）で毎朝動く。
 
-依存: Pillow（webp→png変換用。ローカルmacOSでは sips でも可）。
+依存: PyYAML（メタデータ解析）、Pillow（webp→png変換用）。
 
 環境変数（GitHub Actions の Secrets などで渡す）:
   ANTHROPIC_API_KEY   … Anthropic API キー（必須）
@@ -33,6 +33,9 @@ import urllib.parse
 import urllib.request
 import urllib.error
 import uuid
+from datetime import date
+
+import yaml
 
 BOT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(BOT_DIR, "posted.log")
@@ -93,23 +96,32 @@ def list_notes():
     return notes
 
 
+def metadata_text(value):
+    """YAMLのnullやコンテナを表示せず、日付などの値は文字列化する。"""
+    if isinstance(value, bool) or not isinstance(value, (str, int, float, date)):
+        return ""
+    value = " ".join(str(value).split())
+    # 誤って引用されたブロックスカラー記号も書名として採用しない。
+    if re.fullmatch(r"[>|][1-9]?[+-]?|[>|][+-]?[1-9]?", value):
+        return ""
+    return value
+
+
 def parse_note(path):
     """Books / 読書メモ どちらのスキーマにも対応して情報を取り出す。"""
-    with open(path, encoding="utf-8") as f:
+    with open(path, encoding="utf-8-sig") as f:
         text = f.read()
 
     fm = {}
-    m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+    m = re.match(r"^---[ \t]*\n(.*?)\n---[ \t]*(?:\n|$)", text, re.DOTALL)
     if m:
-        for line in m.group(1).splitlines():
-            km = re.match(r"^([A-Za-z][\w-]*):\s*(.*)$", line)
-            if km:
-                key, val = km.group(1), km.group(2).strip()
-                if (val.startswith('"') and val.endswith('"')) or (
-                    val.startswith("'") and val.endswith("'")
-                ):
-                    val = val[1:-1]
-                fm[key] = val
+        try:
+            parsed = yaml.safe_load(m.group(1))
+        except yaml.YAMLError as exc:
+            raise ValueError(f"本のメタデータが不正なYAMLです: {path}") from exc
+        if parsed is not None and not isinstance(parsed, dict):
+            raise ValueError(f"本のメタデータはキーと値の形式が必要です: {path}")
+        fm = {key: metadata_text(value) for key, value in (parsed or {}).items()}
 
     desc = ""
     dm = re.search(
@@ -198,7 +210,9 @@ def generate_comment(title, author, desc):
         "以下の本について、読みたくなるような紹介コメントを日本語で2〜3文で書いてください。\n"
         "・カジュアルで親しみやすい口調（絵文字は1個まで）\n"
         "・概要の丸写しではなく、その本の面白さ・読む価値が伝わるように\n"
-        "・前置きや「はい」などは不要。コメント本文だけを返す\n\n"
+        "・前置きや「はい」などは不要。コメント本文だけを返す\n"
+        "・概要がない場合は書名から分かるテーマに限って紹介し、具体的な内容や効果を推測しない\n"
+        "・情報不足への言及や、読者へのタイトル・概要の提供依頼は書かない\n\n"
         f"タイトル: {title}\n"
         f"著者: {author}\n"
         f"概要: {desc or '（概要情報なし）'}\n"

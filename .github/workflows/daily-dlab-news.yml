@@ -4,10 +4,15 @@ on:
   # 定時トリガは外部cron（cron-job.org）→ workflow_dispatch を主とする。
   # cron-job.org 側で 毎朝23:00 UTC（=8:00 JST）に dispatch API を叩く想定。
   # GitHub純正 schedule は当リポジトリで発火しない実績があるため使わない（daily.yml と同じ理由）。
-  workflow_dispatch: {}    # 手動実行 / 外部cronトリガ用
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate and preview without sending to Slack'
+        type: boolean
+        default: false
 
 permissions:
-  contents: write          # dlab_news_posted.log をコミットして履歴を残すため
+  contents: write          # URL単位の投稿履歴を保存するため
 
 concurrency:
   group: daily-dlab-news-post
@@ -23,21 +28,29 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install deps
-        run: pip install --quiet openpyxl
+      - name: Validate news stock and posting logic
+        run: |
+          python -m unittest discover -s tests -p 'test_dlab_news.py' -v
+          python dlab_news_stock.py
+
+      - name: Preview without sending
+        if: inputs.dry_run
+        run: python dlab_news_post.py --dry-run
 
       - name: Post today's dlab AI news
+        if: ${{ !inputs.dry_run }}
         env:
           SLACK_BOT_TOKEN_2: ${{ secrets.SLACK_BOT_TOKEN_2 }}
           SLACK_CHANNEL_DLAB_NEWS: ${{ secrets.SLACK_CHANNEL_DLAB_NEWS }}
         run: python dlab_news_post.py
 
       - name: Persist posted history
+        if: ${{ always() && !inputs.dry_run }}
         run: |
-          if [[ -n "$(git status --porcelain dlab_news_posted.log)" ]]; then
+          if [[ -n "$(git status --porcelain data/dlab_news/post_state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add dlab_news_posted.log
-            git commit -m "chore: update dlab_news_posted.log [skip ci]"
+            git add data/dlab_news/post_state.json
+            git commit -m "chore: update AI news posting state [skip ci]"
             bash .github/scripts/push-with-retry.sh
           fi

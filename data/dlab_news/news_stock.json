@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "last_checked_at": "2026-09-23T14:33:00.693923+00:00",
+  "articles": [
+    {
+      "title": "文章を書かないAI「Jev」って何？仕組み・活用実例・使い方を解説",
+      "url": "https://typesafe.ai/blog/introducing-system-one-models-and-jev",
+      "dlab_url": "https://daigovideolab.jp/blog/hj0iobyic76eb5p3yg8gp",
+      "published": "2026-09-18",
+      "collected_at": "2026-09-23T14:33:00.693923+00:00",
+      "summary": "Dラボの新着記事では、TypeSafe AIの「Jev」を紹介しています。文章を生成する代わりに、選択肢やスコア、確率を返すAIです。アプリの判断処理を速くするための開発者向けの部品として、ブラウザ操作などへの活用例を解説しています。",
+      "detail": "Jevは、文章の生成よりも「候補から選ぶ」「点数を付ける」といった判断に特化したモデルとして紹介されています。\nブラウザ操作の実例では、次の操作や対象をJevが選び、文字入力が必要な場面を別の文章生成AIに任せる構成が使われています。\n記事は処理速度やコスト面の利点を紹介する一方、精度がすべての比較対象を上回るわけではないことにも触れています。実演の所要時間や効果は条件付きの結果として扱う必要があります。"
+    },
+    {
+      "title": "GPT Image 2.5：FlareとSunburstの使い分けと活用例",
+      "url": "https://openai.com/index/introducing-chatgpt-images-2-5/",
+      "dlab_url": "https://daigovideolab.jp/blog/eo58zu8d59rirl4xb88z",
+      "published": "2026-09-16",
+      "collected_at": "2026-09-23T14:33:00.693923+00:00",
+      "summary": "Dラボの新着記事が、GPT Image 2.5の画像生成・編集と活用例を整理しています。素早い試作や大量生成向けのFlareと、編集の精度や制御を重視するSunburstの使い分けを紹介しています。",
+      "detail": "記事では、画像を一度作るだけでなく、繰り返し編集したり、人物・商品の見た目を保ちながら素材を作ったりする用途に注目しています。\nFlareは素早い試作や大量生成、Sunburstは追加の精度や制御が必要な編集を想定した選択肢として整理されています。\nChatGPT上でどちらのモデルが使われるかについては、公式に確認できる情報と利用者の推測を区別しています。投稿された比較実験も条件が異なるため、実際の用途で確かめることが大切です。"
+    }
+  ]
+}

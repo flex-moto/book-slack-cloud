@@ -1,0 +1,25 @@
+name: validate-ai-news
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'dlab_news_*.py'
+      - 'tests/test_dlab_news.py'
+      - 'data/dlab_news/news_stock.json'
+      - '.github/workflows/daily-dlab-news.yml'
+      - '.github/workflows/news-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p 'test_dlab_news.py' -v
+      - run: python dlab_news_stock.py

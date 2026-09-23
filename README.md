@@ -145,32 +145,28 @@ dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択
 | クイズを追加・修正 | Slack版と共通の `data/quiz/quiz_bank.xlsx` を編集 |
 | 投稿履歴をリセット | `line_quiz_posted.log` を空にし、`line_quiz_state.json` を削除してコミット |
 
-## dlab AI情報 毎日投稿（fyi_ai関連最新ニュース_情報）
+## dlab AI情報（fyi_ai関連最新ニュース_情報）
 
-dlab（daigovideolab.jp）のAIチャンネルから選んだ直近のAI関連ニュース記事15本を元に、**毎朝1本の概要**を Slack の `#fyi_ai関連最新ニュース_情報`（チャンネルID: `C05KPV4DSLS`）へ自動投稿します。
+**3日ごとにDラボのAIチャンネルの新着記事をストックし、平日朝8時に1本紹介します。** 収集はCodexのこの変更に対応する定期タスク、投稿は従来のcron-job.org → GitHub Actionsです。収集時はMacとCodexを起動しておく必要があります。ストック済み記事の投稿はMacが停止していても動作します。
 
-- `data/dlab_news/news_bank.xlsx` … 記事バンク（day_index・タイトル・URL・公開日・概要）。中身を直接Excelで編集してもOK（`dlab_news_post.py` はExcelを直接読みます）
-- `dlab_news_post.py` … 未投稿の記事を1つ選びSlackへ投稿。全15記事を投稿し終えたら自動的に最初から繰り返します
-- `dlab_news_posted.log` … 投稿済みの記事インデックスを記録（`quiz_posted.log` と同じ仕組み）
-- `.github/workflows/daily-dlab-news.yml` … `workflow_dispatch` で起動するワークフロー。外部cron（cron-job.org）から毎朝8:00 JST（=前日23:00 UTC、`0 23 * * *`）に叩く想定
+- `data/dlab_news/news_stock.json`：記事URL・公開日・初回収集日・概要・詳細と最終確認日時。
+- `dlab_news_stock.py`：検証と重複を除いたストックへの追記。
+- `dlab_news_post.py`：公開から14日以内の未投稿記事を新しい順に選択（同日公開はランダム）。在庫切れなら見送り、古い記事を繰り返しません。
+- `data/dlab_news/post_state.json`：URL単位の投稿履歴と返信の再試行情報。
+- `.github/workflows/daily-dlab-news.yml`：平日08:00 JSTの既存外部cronから起動。`dry_run=true` で送信なしの検証が可能。
+- `.github/workflows/news-validation.yml`：コード・ストック変更時の検証。
 
-### 設定（GitHub Secrets）
+旧Excelバンクと旧ログは記録として残していますが、投稿には使いません。最終収集確認から7日を超えた場合は投稿を停止してActionsをエラーにします。
 
-| 種類 | 名前 | 説明 |
-|---|---|---|
-| Secret | `SLACK_BOT_TOKEN_2` | 本の投稿・クイズ投稿と共用のボットトークン |
-| Secret | `SLACK_CHANNEL_DLAB_NEWS` | 任意。投稿先チャンネルID。未設定なら `C05KPV4DSLS`（`#fyi_ai関連最新ニュース_情報`） |
+GitHub Secretsは従来の `SLACK_BOT_TOKEN_2` と任意の `SLACK_CHANNEL_DLAB_NEWS` を使用します。投稿先は未設定なら `C05KPV4DSLS`（`#fyi_ai関連最新ニュース_情報`）です。
 
-> Slack App（book-slack-cloudが使っているBot）を `#fyi_ai関連最新ニュース_情報` に招待しておく必要があります（未招待だと `not_in_channel` で投稿失敗）。
+収集の具体的な手順とJSON形式は [運用手順](docs/ai-news-collection.md) を参照してください。
 
-### 操作
-
-| やりたいこと | 方法 |
-|---|---|
-| 今すぐテスト投稿 | GitHubリポジトリ → Actions → daily-dlab-news-post → Run workflow（または `gh workflow run daily-dlab-news.yml`） |
-| 記事を追加・入れ替え | `data/dlab_news/news_bank.xlsx` を直接編集 |
-| 投稿履歴をリセット | `dlab_news_posted.log` を空にしてコミット |
-| 投稿時刻を変更 | cron-job.org のジョブのスケジュールを編集 |
+```sh
+python3 -m unittest discover -s tests -p 'test_dlab_news.py' -v
+python3 dlab_news_stock.py
+python3 dlab_news_post.py --dry-run
+```
 
 ## 本を追加したら（手動更新）
 Obsidianで本を増やした後、ローカルで次を実行すると GitHub に反映されます:

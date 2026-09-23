@@ -1,6 +1,11 @@
 {
   "schema_version": 1,
-  "posted": {},
-  "last_posted_date": null,
+  "posted": {
+    "https://daigovideolab.jp/blog/hj0iobyic76eb5p3yg8gp": {
+      "posted_at": "2026-09-23T23:00:37.783092+00:00",
+      "ts": "1790204437.944569"
+    }
+  },
+  "last_posted_date": "2026-09-24",
   "pending_detail": null
 }

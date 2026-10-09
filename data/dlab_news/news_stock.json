@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-09-23T14:33:00.693923+00:00",
+  "last_checked_at": "2026-10-09T07:11:21.677094+00:00",
   "articles": [
+    {
+      "title": "OpenAI DevDay 2026：dotsやGPT-6.1 Solの発表と提供条件を整理",
+      "url": "https://openai.com/index/devday-2026-recap/",
+      "dlab_url": "https://daigovideolab.jp/blog/nijg1vw0yrdkr0zk418ik",
+      "published": "2026-09-30",
+      "collected_at": "2026-10-09T07:11:21.595018+00:00",
+      "summary": "DラボがOpenAI DevDay 2026の発表をまとめています。常駐型のAI助手「dots」や新モデル「GPT-6.1 Sol」などを取り上げ、対象プランと提供時期の違いを整理しています。",
+      "detail": "記事は、発表された機能が全利用者に同時に提供されるわけではない点を解説しています。\nGPT-6.1 Solについては、発表時点でWork・CodexとAPIが主な提供先であり、通常のChat画面とは利用条件が異なると説明しています。\ndotsについても公式発表と提携企業の説明を区別しています。対応プランや段階的な提供状況は、利用する機能ごとに確認する必要があります。"
+    },
     {
       "title": "文章を書かないAI「Jev」って何？仕組み・活用実例・使い方を解説",
       "url": "https://typesafe.ai/blog/introducing-system-one-models-and-jev",

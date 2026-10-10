@@ -6,6 +6,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from dlab_news_health import assess
 from dlab_news_post import build_message, pick_next_article, post_news
 from dlab_news_stock import load_bank, merge_articles, validate_article
 
@@ -109,6 +110,39 @@ class NewsTests(unittest.TestCase):
         message = build_message(dict(article(), summary='<!channel> & <hello>'))
         self.assertIn('記事公開日：2026-09-18 ／ 収集日：2026-09-23', message)
         self.assertNotIn('<!channel>', message)
+
+    def test_health_empty_stock_is_visible_without_mutating_history(self):
+        self.bank['articles'] = []
+        before = copy.deepcopy(self.state)
+        errors, warnings, summary = assess(self.bank, self.state, NOW)
+        self.assertTrue(errors)
+        self.assertIn('0件', summary)
+        self.assertEqual(self.state, before)
+
+    def test_health_posted_today_warns_about_next_run(self):
+        self.state['posted'][article()['dlab_url']] = {}
+        self.state['last_posted_date'] = NOW.date().isoformat()
+        errors, warnings, _ = assess(self.bank, self.state, NOW)
+        self.assertFalse(errors)
+        self.assertTrue(warnings)
+
+    def test_health_collection_age_and_pending_reply(self):
+        self.bank['last_checked_at'] = '2026-09-20T14:00:00+00:00'
+        errors, warnings, _ = assess(self.bank, self.state, NOW)
+        self.assertFalse(errors)
+        self.assertTrue(any('3 days' in w for w in warnings))
+        self.bank['last_checked_at'] = '2026-09-15T14:00:00+00:00'
+        self.state['last_posted_date'] = NOW.date().isoformat()
+        self.state['pending_detail'] = {'ts': '123'}
+        errors, _, _ = assess(self.bank, self.state, NOW)
+        self.assertEqual(len(errors), 2)
+
+    def test_health_excludes_expired_and_posted_articles(self):
+        self.bank['articles'] = [article('2026-09-08', 'expired'), article()]
+        self.state['posted'][article()['dlab_url']] = {}
+        errors, _, summary = assess(self.bank, self.state, NOW)
+        self.assertTrue(errors)
+        self.assertIn('0件', summary)
 
     def test_real_stock_validates(self):
         bank = load_bank()

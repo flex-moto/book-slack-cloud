@@ -54,3 +54,7 @@ jobs:
             git commit -m "chore: update AI news posting state [skip ci]"
             bash .github/scripts/push-with-retry.sh
           fi
+
+      - name: Report collection and posting health
+        if: always()
+        run: python dlab_news_health.py

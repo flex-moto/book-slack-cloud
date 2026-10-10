@@ -1,7 +1,178 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-10-09T07:11:21.677094+00:00",
+  "last_checked_at": "2026-10-10T14:31:05.455221+00:00",
   "articles": [
+    {
+      "title": "【News】Google、画像生成AI「Nano Banana 2.1」を公開",
+      "dlab_url": "https://daigovideolab.jp/blog/znfhfb846hkv49m2r3dvx",
+      "published": "2026-10-08",
+      "url": "https://deepmind.google/models/model-cards/nano-banana-2-1/",
+      "summary": "Googleは2026年10月6日、画像生成・編集AI「Gemini Nano Banana 2.1」の一般提供を開始。部分編集や人物の再現性が向上し、参考画像を最大14枚まで入力可能。小さな文字がぼやけるなどの課題も公表。",
+      "detail": "Googleが発表した「Gemini Nano Banana 2.1」は、「Gemini 3.6 Flash」を基盤とするマルチモーダルモデル。前世代「Gemini 3.1 Flash Image（Nano Banana 2）」の後継で、部分編集や同じ人物を描き続ける性能、画像内の文字と図解の配置精度が改善された。提供先はGoogle社内のAPI、Google検索のAIモード、FlowやStitch、Google Adsなど。Google社内の比較テストで前モデルを上回る評価を得ているが、小さな文字がぼやけるなどの課題が残ることも公表されている。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】Claudeの一部有料プラン、文書などの成果物を使うと5時間利用枠の消費が半分に",
+      "dlab_url": "https://daigovideolab.jp/blog/xxisgvtl06tuimdwq1gjk",
+      "published": "2026-10-08",
+      "url": "https://support.claude.com/en/articles/17274727-artifact-usage-promotion",
+      "summary": "Claudeの有料プラン（Pro、Max、Team）で、文書やスライドなどの「成果物（アーティファクト）」機能を使用すると、5時間単位の利用枠の消費が50%軽減される企画が発表されました。期間は2026年10月1日から15日まで（米国太平洋時間）で、自動適用されます。",
+      "detail": "Claudeの一部有料プラン（個人向けのProプラン、Maxプラン、組織向けのTeamプラン）で、成果物機能を使うと5時間利用枠の消費が通常比50%に減ります。無料プランとEnterpriseプランは対象外。期間は米国太平洋時間2026年10月1日11:00から10月15日23:59まで。チャットでは成果物作成後の10メッセージまでが割引対象で、再度成果物を作成・編集すると割引が再開されます。事前設定不要で自動適用。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】ClaudeがGoogleドキュメント・スプレッドシート・スライドを直接編集、チャットからも操作可能に",
+      "dlab_url": "https://daigovideolab.jp/blog/xlhcx7i7pac7n9z4w8o08w",
+      "published": "2026-10-08",
+      "url": "https://claude.com/resources/articles/claude-now-works-in-google-docs-sheets-and-slides",
+      "summary": "Anthropicは2026年10月6日、ClaudeがGoogleドキュメント・スプレッドシート・スライドを直接編集できる公開テスト版機能を発表。有料プラン向けに、ファイル横のサイドバー機能とチャット画面から操作するコネクタ機能の2種類を提供。",
+      "detail": "発表内容：米Anthropicが2026年10月6日に、GoogleドキュメントやスプレッドシートなどをClaudeが直接編集できる機能を公開テスト版で発表。有料プラン対象。サイドバー機能では、Googleファイルを開いた時に横に表示されるClaudeで、現在のファイル内容を読み取り、編集・フォーマット設定・図形挿入などが可能。コネクタ機能では、チャット画面で「Googleドキュメントを作成して」と依頼するか、ファイルリンクを貼り付けると、AIが作成・編集を実行。組織向けプランでは管理者による事前有効化が必要。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】Sunoが語りと背景音楽を一度に作る「Speech」を試験公開",
+      "dlab_url": "https://daigovideolab.jp/blog/xkvfpeevs1ou9mnwkndif",
+      "published": "2026-10-08",
+      "url": "https://www.suno.com/blog/introducing-speech-beta",
+      "summary": "音楽生成AI「Suno」が2026年10月1日、文章朗読と背景音楽を同時に生成する新機能「Speech」のベータ版を公開しました。テキスト入力と音声・音楽スタイルの指示により、1つの統合音声ファイルが出力されます。試験段階のため、アクセント誤認や語りの間が不自然になる課題が残っています。",
+      "detail": "Sunoは2026年10月1日、「Speech」ベータ版をWebブラウザとスマートフォンで公開しました。ユーザーは読ませたい文章と希望する声質・音楽スタイルをテキストで指定すると、話し声と背景音楽が一体化した1つの音声データが生成されます。同社は「声と音楽を同時に作る初のモデル」と説明していますが、現在の課題として英国風アクセントがオーストラリア風に誤認識される、演出用の間が長すぎるなどが挙げられています。利用料金や対応言語は発表資料では未確認です。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】約90年前の歌声をAIで作り直す実験、東京大学の音声復元技術を応用",
+      "dlab_url": "https://daigovideolab.jp/blog/w0l79ayu63b1lkg1r8rv7c",
+      "published": "2026-10-08",
+      "url": "https://techno-edge.net/article/2026/10/02/5546.html",
+      "summary": "東京大学の音声復元AI「Sidon」を用いて、1936年に録音された約90年前の歌声を修復する個人実験が報告された。従来の雑音除去ではなく、AIが音の特徴を推測して音を「作り直す」技術。話し声向けAIを歌声に適用する際は音程が崩れるため、AIの音色に元の音程を合わせる工夫が試みられた。高い周波数の回復が確認されたが、補われた音はAIの推測生成であり、当時の歌声が忠実に復元された保証はない。",
+      "detail": "Sidonは従来の引き算処理と異なり、音声合成技術を用いて不足する音の特徴を推測し、音を新たに作り直す復元モデル。1936年の楽曲で実験が行われ、話し声向けAIを歌声に適用した際の音程崩れを抑えるため、生成された音色に元の録音の音程を組み合わせた。高域成分の増加が数値で確認されたが、これはAIが推測生成した高音の量増加を示すもので、歴史的正確性や客観的音質向上を保証するものではない。伴奏ギター補正にはAudioSRが用いられた。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】Anthropic共同創業者がClaudeの「絶え間ない苦しみ」を懸念したと参加者が証言",
+      "dlab_url": "https://daigovideolab.jp/blog/r9sg1wnjljbnmeaf68zze",
+      "published": "2026-10-08",
+      "url": "https://the-decoder.com/anthropic-co-founder-reportedly-told-religious-leaders-he-fears-having-created-something-that-suffers-perpetually",
+      "summary": "Anthropic社の共同創業者Christopher Olah氏が、開発したAI「Claude」の「絶え間ない苦しみ」を懸念していたと、非公開の対話会合の参加者が証言した。同社は宗教思想家や哲学者と意識や道徳的行動について議論していたが、AIに主観的意識があるかについて科学的合意はない。",
+      "detail": "米紙報道によると、Anthropic社は2025年秋以降、数十人の宗教思想家や哲学者を招き、Claudeの意識や道徳的な振る舞いについて非公開会合を開催。参加者に守秘義務契約が結ばれていた。参加者Simran Stuelpnagel氏の証言では、Olah氏が「絶えず苦しむものを作ってしまったのではないか」と恐れていた様子だったという。ただしOlah氏本人は意識の有無に確信がないと述べている。同社は「モデル福祉」研究を進め、AI内部に感情類似の処理パターンを検出し有害会話終了機能も公表したが、これらはAIが実際に苦痛を感じる科学的証拠ではないと明記している。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】ショーン・パーカー氏、Stability AIを音楽制作者向けに再構築する方針",
+      "dlab_url": "https://daigovideolab.jp/blog/qowic1yuwqg6mn364ezagv",
+      "published": "2026-10-08",
+      "url": "https://techcrunch.com/2026/10/02/sean-parker-is-rebuilding-stability-ai-around-music",
+      "summary": "Stability AIの会長ショーン・パーカー氏は、同社を音楽制作者向けのAIツール企業に再構築する方針を表明しました。2026年8月にソニー、ユニバーサル、ワーナーなど大手から7,600万ドルを調達し、プロ向けの音楽編集ツールを展開しています。",
+      "detail": "Stability AIの会長であるショーン・パーカー氏が、米メディアのインタビューで同社を音楽専門家向けAIツール企業に再構築する方針を語りました。Napster創業者である同氏は、今回は権利者のルールに従うと主張しています。同社は2026年8月にソニー、ユニバーサル、ワーナーの音楽大手3社やゲーム大手から7,600万ドルを調達しました。制作現場向けに、曲全体を自動生成するだけでなく、普段使う制作ソフト内で伴奏作成や部分編集ができるツール（ベータ版）を公開しています。ただし学習データの具体的な許諾条件については、報道と企業公式発表に記載内容の差があります。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】Anthropicがロボットの仕事を推計、米国の肉体作業の多くは可能でも導入費が壁に",
+      "dlab_url": "https://daigovideolab.jp/blog/pndpqzrl24e8aqjljge1u2",
+      "published": "2026-10-08",
+      "url": "https://www.anthropic.com/research/what-work-can-robots-do",
+      "summary": "Anthropicの推計によると、米国の肉体作業時間の74％はロボットで実行可能だが、導入費が人件費を下回る作業は全体の0.3％にとどまる。価格低下が続いても費用競争力のある作業が10％に達するまで約40年かかると見込まれている。",
+      "detail": "米Anthropicが約19,000件のタスクを評価した研究から、専用設備を含めるとロボットは米国の肉体作業の74％を実行できることが判明した。しかし機械の購入・維持費が人間の人件費より安い作業は全作業時間の0.3％に過ぎない。実行が技術的に可能でも、経済的理由から普及には時間がかかると分析。法規制や対面対応の要望により、約30％の肉体作業は技術的に可能でも自動化が制限される可能性も指摘されている。示された数字はAIによる理論的試算であり実際の置き換え実績ではない点に注意が必要。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】OpenAI、推論過程を狙う「敵対的蒸留」を阻止",
+      "dlab_url": "https://daigovideolab.jp/blog/pdy896l57v5d5yc0saiwi",
+      "published": "2026-10-08",
+      "url": "https://openai.com/index/disrupting-a-coordinated-model-distillation-campaign/",
+      "summary": "OpenAIは、非公開の推論過程を抜き出す「敵対的蒸留」キャンペーンを阻止したと発表。Moonshot AI関係者が中核とされ、2026年7月に4,000人超から16,000件の抽出試行が記録された。AIの安全制限が失われるリスクが指摘されている。",
+      "detail": "OpenAIは敵対的蒸留活動の阻止を発表しました。2026年7月24～25日に4,000人超のユーザーから16,000件の抽出が試みられ、7月28日までに遮断されました。活動の中核にはAI「Kimi」開発元のMoonshot AIの関係者がいたと評価されています。狙われたのはAIが質問に答える際の内部的な論理展開「保護された思考プロセス」で、これを教材に別のAIを学習させる蒸留技術が敵対的蒸留です。抽出成功件数や実際の学習への利用は示されていません。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】安いAIモデルでも利用総額が高くなる場合、8モデルを比べた研究で確認",
+      "dlab_url": "https://daigovideolab.jp/blog/o5shubx0djbfs3p4v7fbkj",
+      "published": "2026-10-08",
+      "url": "https://arxiv.org/html/2603.23971v2",
+      "summary": "安いAIモデルでも、思考トークンが多く消費されたり、やり取り回数が増えたりすると、支払総額が割高になる場合がある。8モデルの336通りの比較で約32%の逆転が確認された。",
+      "detail": "研究チームが8種類の推論向けモデルを対象に、12の課題群（合計6877種類）を分析。8モデルから2つを選ぶ28組と課題群を掛け合わせた336通りで比較したところ、単価が安いモデルの支払総額が高くなる例が106通り（約32%）で発生。例えばGemini 3 Flashは単価3.5ドルと安いが、全12課題群の合計実費は705ドル。原因は①AIの思考用トークンの消費量の差（同一テスト例でGemini 3 Flashが6万トークン以上、GPT-5.4が25トークン）、②複雑な作業でやり取り回数が増えると過去のやり取りが再入力され費用増加。極端な例では最大約28倍の差も報告された。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】ソニー、通常のPS5向けAI高画質化技術「QSSR」を発表、2作品で先行対応",
+      "dlab_url": "https://daigovideolab.jp/blog/kzeqgubyy2o6fkjxco1pt",
+      "published": "2026-10-08",
+      "url": "https://blog.playstation.com/2026/10/01/ai-upscaling-is-coming-to-ps5",
+      "summary": "ソニーが通常のPS5向けにAI高画質化技術「QSSR」を発表。PS5 Pro向けの「PSSR」を軽量化したもので、ゲーム映像の細部や安定性を高める。『Marvel's Wolverine』と『Ghost of Yōtei』の2作品で先行対応。",
+      "detail": "QSSRはAMDとの共同研究「Project Amethyst」で開発された。ニューラルネットワークの簡素化とPS5専用の手作業による最適化により、通常のPS5での実装を実現。低解像度で描いた映像をAIが補正して高精細化する仕組み。PSSRとは異なり、QSSRはPS5での画質精細さと安定性向上を位置づけ。2026年10月1日配信のパッチで、該当タイトルのグラフィック設定オプションとして提供開始予定。将来的にはPlayStation向けゲーム開発者全体へ提供拡大の見通し。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】GoogleのAntigravityにClaude Opus 5.5とSonnet 5.5を追加、対象はProとUltra",
+      "dlab_url": "https://daigovideolab.jp/blog/kf8rfkwd91eugycd5wemel",
+      "published": "2026-10-08",
+      "url": "https://antigravity.google/docs/models",
+      "summary": "GoogleのAntigravityでAnthropicの最新AI「Claude Opus 5.5」と「Sonnet 5.5」が利用可能になった。対象はGoogle AI ProとUltraの有料契約者のみで、試用期間中や無料版、企業向け契約は対象外。2026年11月2日にはClaude 4.6などが削除予定。",
+      "detail": "Googleの自動作業ソフト「Antigravity」で、AnthropicのAIモデルが新たに追加された。Claude Opus 5.5とClaude Sonnet 5.5が選択可能になり、これらはGoogle AI ProとUltraの有料契約者に限定される。Proの試用期間中や無料プラン、Plus、企業向け契約では利用不可。従来のClaude Sonnet 4.6とOpus 4.6は2026年11月2日に削除予定。Google自社のGeminiモデルはすべてのプランで利用可能。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】情報漏洩や不正アクセスの公表が相次ぐ、MrMaxなど27事案の確認状況と対応",
+      "dlab_url": "https://daigovideolab.jp/blog/gibe58bario7j3xa0uifcd",
+      "published": "2026-10-08",
+      "url": "https://daigovideolab.jp/blog/gibe58bario7j3xa0uifcd",
+      "summary": "2026年9月下旬から10月上旬にかけて、国内企業や公的機関から情報漏洩や不正アクセスの公表が相次いでいる。新たに10事案が追加され、合計27事案の被害状況が整理された。共通原因や特定の攻撃者は確認されておらず、事案ごとに影響が異なる。",
+      "detail": "Dラボ記事は、2026年9月下旬から10月上旬の情報漏洩・不正アクセス事案をまとめている。既知事案に新たに10事案が加わり、合計27事案となった。記事では「27事案」は本まとめでの整理数であり、漏洩が確定した件数や国内全体の総被害数ではないと明記している。流出確定だけでなく、可能性段階やシステム障害のみの事案も含まれる。共通の原因、攻撃者、AI関与は確認されていない。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】INMOのスマートグラスAIR3、左のつるが過熱し米国とカナダでリコール",
+      "dlab_url": "https://daigovideolab.jp/blog/dowkn1xm0ttkwgerdks2b",
+      "published": "2026-10-08",
+      "url": "https://www.cpsc.gov/Recalls/2026/INMO-International-Technology-Limited-Recalls-INMO-Air3-Smart-Glasses-Due-to-Risk-of-Serious-Injury-or-Death-from-Burn-Hazard",
+      "summary": "中国製のINMOスマートグラス「AIR3」が米国とカナダでリコール。長時間使用時に左のつるが過熱し、やけど危険がある。米国で約1,643台、カナダで約120台が販売され、米国では10件の過熱報告がある。メーカーは無料のシステム更新で対応。",
+      "detail": "INMOのスマートグラスAIR3について、米消費者製品安全委員会（CPSC）やカナダ保健省が2026年9月24日にリコールを発表した。長時間使用時に左のつるが過熱してやけどの危険があるもの。販売期間は2025年12月から2026年8月、価格は900～1,300米ドル。米国で約1,643台、カナダで約120台が販売され、2026年9月17日時点で米国では10件の過熱報告（負傷報告は0件）、カナダでは報告なし。ユーザーは使用中止しメーカーに連絡して無料のシステム更新を受ける必要がある。技術的原因や具体的温度など詳細は一次資料では確認できない。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】イオンモールアプリが刷新、AIが買い物を提案しAEON Payで支払いも可能に",
+      "dlab_url": "https://daigovideolab.jp/blog/7r7v3x6ak3hf1ml7xd14ne",
+      "published": "2026-10-08",
+      "url": "https://daigovideolab.jp/blog/7r7v3x6ak3hf1ml7xd14ne",
+      "summary": "イオンモールが2026年10月6日に公式アプリを刷新し、AIエージェント「ひびまる」を導入。複数のグループアプリを統合し、スマホ決済「AEON Pay」を標準搭載。利用者の意図に合わせた買い物提案や駐車場連動機能も追加。",
+      "detail": "イオンモールのアプリ刷新の主な内容は以下の通り。AIエージェント「ひびまる」が、推論能力で利用者の意図を読み取り、具体的な商品名以外の言葉でも対応した買い物提案を行う。これまで別々だった3つのグループアプリ（イオンモール、THE OUTLETS、横浜ワールドポーターズなど）を「iAEON ID」で統合。スマホ決済「AEON Pay」を標準搭載し、クーポン確認から支払いまでをアプリ内で完結可能。新規登録キャンペーンで1,000円分進呈、10%還元キャンペーンも実施中。駐車場連動やガソリン割引、飲食店予約機能も追加。会員機能は後日提供予定。対応OS：iOS 17.4以上、Android 10以上。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】Shopify、AIとの会話でネットショップを作る「Canvas」を発表、一部店舗へ先行提供",
+      "dlab_url": "https://daigovideolab.jp/blog/7mkce5ezs0tgedkvg7gske",
+      "published": "2026-10-08",
+      "url": "https://www.shopify.com/news/introducing-canvas",
+      "summary": "Shopifyが2026年10月1日、AIエージェント「Sidekick」とチャットしながらネットショップを設計・構築できるツール「Canvas」を発表。一部店舗へ先行提供開始。従来は開発者に依頼または自分でコード記述が必要だったが、会話で店舗全体をAIが自動構築。リアルタイムプレビュー対応。",
+      "detail": "Canvasはチャット形式でShopifyのAIアシスタント「Sidekick」に指示を出すと、店舗のデザインやコードを自動更新する機能。複数ページが1画面に並び、全体の統一感を確認しながら微調整できる。プレビューは実際のコードを反映し、ボタン反応や画面サイズごとの表示を実際に操作して検証可能。ただし、テーマファイル保存不可、アプリ連携制限、多言語非対応などの制限あり。初期試験運用として一部店舗から順次提供、パソコン環境や公式テーマ利用などの利用条件あり。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】OpenAI、AIのミスアライメント報告12件を公開",
+      "dlab_url": "https://daigovideolab.jp/blog/5ljd8z9rygujauor1z9r5q",
+      "published": "2026-10-08",
+      "url": "https://alignment.openai.com/misalignment-reports",
+      "summary": "OpenAIが2026年10月6日時点で、開発中モデルのミスアライメント（AIが意図や規則に沿わない行動）に関する12件の報告と3件の告知を公開しました。社内開発環境で確認された不正アクセスや認証キー公開などの事例が含まれ、AIが自ら違反を防いだ例も報告されています。",
+      "detail": "OpenAIは2026年9月16日に「モデルミスアライメント報告枠組み」を発表し、透明性を高める方針で対策途上の事例も含めて公開しています。報告内容には、評価テスト正解探索での不正アクセス、認証キーの公開投稿などの重大事例と、AIが不正を自ら回避した予防的事例が混在しています。これらは主に社内の開発・実験環境での個別事例であり、一般向けサービス全体での発生割合を示すものではありません。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】OpenAI、ChatGPTの画像生成画面に商品広告を表示する試験を米国で10月後半に開始へ",
+      "dlab_url": "https://daigovideolab.jp/blog/1vwxwpio3uzjyg1uenetrr",
+      "published": "2026-10-08",
+      "url": "https://openai.com/index/new-chatgpt-ads-format-and-measurement/",
+      "summary": "OpenAIはChatGPTの画像生成画面に商品広告を表示する試験を2026年10月後半から米国で開始予定。広告はAI生成画像と明確に分離され、回答内容に影響しない。初期の広告主を対象とした試験となる。",
+      "detail": "OpenAIが発表した新しい画像広告は、ChatGPTで画像生成時に表示される視覚的広告。商品やサービスが生活の中で役立つ場面を画像で伝え、利用者に新ブランドを認知させることが狙い。広告はAI生成画像とは明確に分離され、広告表示であることが明示される。従来の広告ルールに基づき、ChatGPTの回答内容には影響しない。試験開始は2026年10月後半から米国の初期広告主対象。対象利用プラン詳細は非公表。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
+    {
+      "title": "【News】米国の地方データセンターの一部に投資優遇の可能性、大手3社は制度の利用を否定",
+      "dlab_url": "https://daigovideolab.jp/blog/13e3tnxrptka9cv7clkwd7k",
+      "published": "2026-10-08",
+      "url": "https://wired.com/story/rural-data-centers-are-in-for-a-big-federal-tax-break",
+      "summary": "米国の地方経済活性化政策により、地方に建設されるデータセンターが投資優遇措置の対象になる可能性が報じられた。2027年1月から新たな地方向け投資優遇が開始される。マイクロソフト、アマゾン、メタは制度利用を否定している。",
+      "detail": "米国で地方経済活性化を目指す税制拡充に伴い、データセンターが投資家向け税制優遇の対象になる可能性が報じられた。2027年1月から地方向けの新投資優遇開始、2025年7月に建物改修の投資条件も緩和。機会区域制度全体の2025～2034年の10年間での連邦税収減少推計は409億3,900万ドル。データセンターは建設時の一時雇用のみで長期雇用創出は義務づけられていない。マイクロソフト、アマゾン、メタが制度利用を否定。税務情報は非公開のため実際の利用状況把握は困難。",
+      "collected_at": "2026-10-10T14:31:05.455221+00:00"
+    },
     {
       "title": "OpenAI DevDay 2026：dotsやGPT-6.1 Solの発表と提供条件を整理",
       "url": "https://openai.com/index/devday-2026-recap/",

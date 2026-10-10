@@ -6,7 +6,7 @@
 
 収集にはDラボ公式MCP（https://mcp.daigovideolab.jp/mcp）を使用し、要約には既存のAnthropic APIキーを使います。モデルは `DLAB_SUMMARY_MODEL` 変数で指定でき、既定は `claude-haiku-4-5` です。新しく取り込む記事だけを要約し、記事ごとに最大1,800出力トークンに制限します。Anthropic APIの従量料金が発生します。
 
-以前のMac上のCodex定期収集は、クラウド動作確認後に停止します。
+以前のMac上のCodex定期収集（`d-ai`）は、クラウド動作確認後に停止済みです。
 
 ## 初回認証・更新
 

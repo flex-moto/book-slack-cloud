@@ -159,9 +159,9 @@ dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択
 
 旧Excelバンクと旧ログは記録として残していますが、投稿には使いません。最終収集確認から7日を超えた場合は投稿を停止してActionsをエラーにします。
 
-GitHub Secretsは従来の `SLACK_BOT_TOKEN_2` と任意の `SLACK_CHANNEL_DLAB_NEWS` を使用します。投稿先は未設定なら `C05KPV4DSLS`（`#fyi_ai関連最新ニュース_情報`）です。
+GitHub Secretsは収集用の `DLAB_MCP_TOKEN`、要約用の `ANTHROPIC_API_KEY`、投稿用の `SLACK_BOT_TOKEN_2` と任意の `SLACK_CHANNEL_DLAB_NEWS` を使用します。投稿先は未設定なら `C05KPV4DSLS`（`#fyi_ai関連最新ニュース_情報`）です。
 
-収集の具体的な手順とJSON形式は [運用手順](docs/ai-news-collection.md) を参照してください。
+収集・認証更新・送信なし検証の具体的な手順は [運用手順](docs/ai-news-collection.md) を参照してください。
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_dlab_news*.py' -v

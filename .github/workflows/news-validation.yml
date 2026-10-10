@@ -5,7 +5,8 @@ on:
   push:
     paths:
       - 'dlab_news_*.py'
-      - 'tests/test_dlab_news.py'
+      - 'scripts/dlab-cloud-login.py'
+      - 'tests/test_dlab_news*.py'
       - 'data/dlab_news/news_stock.json'
       - '.github/workflows/daily-dlab-news.yml'
       - '.github/workflows/news-validation.yml'
@@ -21,5 +22,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m unittest discover -s tests -p 'test_dlab_news.py' -v
+      - run: python -m unittest discover -s tests -p 'test_dlab_news*.py' -v
       - run: python dlab_news_stock.py

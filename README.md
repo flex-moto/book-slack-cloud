@@ -147,9 +147,10 @@ dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択
 
 ## dlab AI情報（fyi_ai関連最新ニュース_情報）
 
-**3日ごとにDラボのAIチャンネルの新着記事をストックし、平日朝8時に1本紹介します。** 収集はCodexのこの変更に対応する定期タスク、投稿は従来のcron-job.org → GitHub Actionsです。収集時はMacとCodexを起動しておく必要があります。ストック済み記事の投稿はMacが停止していても動作します。
+**平日朝8時にGitHub ActionsでDラボのAI記事を取得・要約・保存し、その後1本をSlackで紹介します。Mac・Codexの起動は不要です。** 起動は既存のcron-job.orgを使います。Dラボ認証は約90日ごとにブラウザで更新が必要です。設定・更新方法は [クラウド収集の運用手順](docs/ai-news-collection.md) を参照してください。
 
 - `data/dlab_news/news_stock.json`：記事URL・公開日・初回収集日・概要・詳細と最終確認日時。
+- `dlab_news_collect.py`：Dラボ公式MCPで最新20件を確認し、未登録の記事をAnthropic APIで短く要約。
 - `dlab_news_stock.py`：検証と重複を除いたストックへの追記。
 - `dlab_news_post.py`：公開から14日以内の未投稿記事を新しい順に選択（同日公開はランダム）。在庫切れなら見送り、古い記事を繰り返しません。
 - `data/dlab_news/post_state.json`：URL単位の投稿履歴と返信の再試行情報。
@@ -163,7 +164,7 @@ GitHub Secretsは従来の `SLACK_BOT_TOKEN_2` と任意の `SLACK_CHANNEL_DLAB_
 収集の具体的な手順とJSON形式は [運用手順](docs/ai-news-collection.md) を参照してください。
 
 ```sh
-python3 -m unittest discover -s tests -p 'test_dlab_news.py' -v
+python3 -m unittest discover -s tests -p 'test_dlab_news*.py' -v
 python3 dlab_news_stock.py
 python3 dlab_news_post.py --dry-run
 ```

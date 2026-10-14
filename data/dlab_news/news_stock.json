@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-10-13T23:00:38.861630+00:00",
+  "last_checked_at": "2026-10-14T23:00:40.853288+00:00",
   "articles": [
+    {
+      "title": "Gemini 4 Argonが一般提供開始！Google最上位AIの性能・使い方・Xで話題の活用例まとめ",
+      "dlab_url": "https://daigovideolab.jp/blog/2unqx0dclycxd13q16z48",
+      "published": "2026-10-14",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+      "summary": "Google最上位AIモデル「Gemini 4 Argon」が日本時間10月14日に一般提供開始。Geminiアプリと検索のAIモードは無料を除き段階的に利用可能。APIは11月30日まで入力$2/出力$10（100万トークンあたり）、12月1日から倍額。性能は高いがClaude Opus 5.5と比較して課題による優劣が変わる。",
+      "detail": "記事は10月14日のGemini 4 Argon一般提供開始を報告。提供範囲は：Geminiアプリと検索のAIモード（AI Pro/Ultra対象、無料と AI Plusは除外）、Antigravity（Ultra のみ）、API（有料枠）。API料金は導入期間（11月30日まで）が入力$2/出力$10で、12月1日から$4/$20に変更。性能についてはトップクラスだが単独首位ではなく、Claude Opus 5.5との比較では課題により品質と価格の優位性が逆転する場合がある。一般提供後の第三者評価はこれからの段階。",
+      "collected_at": "2026-10-14T23:00:40.853288+00:00"
+    },
     {
       "title": "【News】Google、画像生成AI「Nano Banana 2.1」を公開",
       "dlab_url": "https://daigovideolab.jp/blog/znfhfb846hkv49m2r3dvx",

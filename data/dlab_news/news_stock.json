@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-10-20T07:47:51.819793+00:00",
+  "last_checked_at": "2026-10-20T23:00:39.740583+00:00",
   "articles": [
+    {
+      "title": "無料でGPT-5.6級のモデルが動く？OpenCodeでDeepSeek V4.1 Flashを無料で使ってみよう！",
+      "dlab_url": "https://daigovideolab.jp/blog/vpur3xeigwmymi2ji0voci",
+      "published": "2026-10-20",
+      "url": "https://x.com/opencode/status/2110635747648909472",
+      "summary": "OpenCodeで10月15日から期間限定でDeepSeek V4.1 Flashが無料提供されている。Mac上で登録やクレジットカード不要で利用できるが、無料枠の使用上限は非公開で、利用報告では1時間未満から9時間以上まで幅がある。個人情報やAPIキーは入力しないよう注意が必要。",
+      "detail": "OpenCode公式が10月15日に「DeepSeek V4.1 Flash is now free in OpenCode」と発表し、期間限定の無料提供を開始した。Mac環境で登録やクレジットカードなしに$0.00で動作する。提供元によると数か月前のトップ級モデルに迫る性能を持つ。ただし無料枠の上限は非公開で、利用者報告では「1時間未満」から「9時間以上」まで幅がある。個人情報や社外秘、APIキーの入力は避けるべき。10月19日にはバージョン「1017」へ更新され、無料版と月額Goプランの内容が差し替わった。",
+      "collected_at": "2026-10-20T23:00:39.740583+00:00"
+    },
     {
       "title": "【News】Vercel、報奨金枠100万ドルのサンドボックス脱出検証結果を公表　Linuxカーネルの未知の脆弱性も発見",
       "dlab_url": "https://daigovideolab.jp/blog/wlhp39iyyyhu9lm4roq8k",

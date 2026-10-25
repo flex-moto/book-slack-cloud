@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-10-23T07:00:56.553878+00:00",
+  "last_checked_at": "2026-10-25T23:00:44.043379+00:00",
   "articles": [
+    {
+      "title": "Meta「Muse」が日本上陸！無料でどこまで使える？DotsやGrok Botとの違いとMacでの始め方",
+      "dlab_url": "https://daigovideolab.jp/blog/ox0ux3szucmtlvyhc8mb",
+      "published": "2026-10-25",
+      "url": "https://about.fb.com/ja/news/2026/10/muse-personal-ai-agent-launches-in-japan/",
+      "summary": "Metaの個人向けAIエージェント「Muse」が10月23日に日本上陸。無料で基本機能を試せるプロアクティブエージェントで、自動提案も行う。DotsやGrok Botとの比較では、入口の料金（無料 vs 月30～100ドル）が最大の特徴。",
+      "detail": "Museは個人向けAIエージェントで、iPhone・AndroidアプリとWeb版(muse.ai)で利用可能。無料では「Spark系」のモデル、有料では「Muse Wonder」が使える。他のAIエージェント（OpenAIのDots：ChatGPT Pro月100ドル以上、xAIのGrok Bot：X Premium月30ドル以上）と異なり、Museは0円で始められる。Gmail、カレンダー、Instagram、GitHubなど複数サービスと連携。先回りの提案機能として通知やアイデアタブ、日時指定タスク機能を備える。北米での公開40日後で累計1,090万ダウンロード。",
+      "collected_at": "2026-10-25T23:00:44.043379+00:00"
+    },
     {
       "title": "【News】Anthropic、重大被害の恐れがあるAIの公開を裁判所が止められる米法案草案を議員に提示と報道",
       "dlab_url": "https://daigovideolab.jp/blog/zg6706gtcot2onsczyw8",

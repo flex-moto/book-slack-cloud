@@ -1,7 +1,187 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-10-28T23:00:44.787876+00:00",
+  "last_checked_at": "2026-10-30T11:01:25.319226+00:00",
   "articles": [
+    {
+      "title": "【News】「きのこの山ワイヤレスイヤホン Pro」が11月に支援募集へ、1000台の申し込みで商品化",
+      "dlab_url": "https://daigovideolab.jp/blog/ydi6uptcnhodgcexyplkmu",
+      "published": "2026-10-29",
+      "url": "https://news.denfaminicogamer.jp/news/261026w",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "「きのこの山ワイヤレスイヤホン Pro」の商品化企画が発表されました。11月に支援募集を始め、12月13日までに1000台以上の申し込みが集まれば受注生産する計画です。",
+      "detail": "明治公認で、AI同時翻訳を継承し音質やケース待機性能を改善するとしています。翻訳精度98％は開発企業の自社調べで、第三者検証や試験条件は確認できません。通信要件や追加利用料などの詳細も記事時点では不明です。"
+    },
+    {
+      "title": "【News】SpaceX、AI半導体向け約400億ドルの金融リースで拘束力ある合意",
+      "dlab_url": "https://daigovideolab.jp/blog/tmbz0ijyyigt6ldlotni9d",
+      "published": "2026-10-29",
+      "url": "https://x.com/DeItaone/status/2114466263292694980",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "SpaceXがAI用半導体などの金融リースに向け、約400億ドル規模の拘束力ある合意を結びました。公式開示では正式契約前であり、現金融資の受領完了とは異なります。",
+      "detail": "400億ドルは、将来の機器納入に伴う元本相当の支払予定総額です。NVIDIAのVera RubinをGrokやクラウド基盤に使う計画。金利を含む総支払額は未確定で、所定条件を満たさない場合は契約が成立しない可能性も記されています。"
+    },
+    {
+      "title": "【News】災害時にネットなしで資料を探せる無料AI「Survival LLM」",
+      "dlab_url": "https://daigovideolab.jp/blog/s8anx2hewh5zz9f7k9q4c",
+      "published": "2026-10-29",
+      "url": "https://gigazine.net/news/20261029-survival-llm",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "「Survival LLM」は、通信できない環境でもパソコン上で防災資料を探せる無料AIです。保存した手引きから回答し、出典を示します。",
+      "detail": "インターネットが使えない場面を想定したツールです。開発元の性能評価は、配布版とは一部異なる資料を用いた自己評価であり、その数値が配布版の性能をそのまま保証するものではありません。"
+    },
+    {
+      "title": "【News】AppleのSiri AIが日本語でベータ提供開始、画面や個人の文脈を踏まえて操作を支援",
+      "dlab_url": "https://daigovideolab.jp/blog/p0672xe4aaj8ln5jhn0j3e",
+      "published": "2026-10-29",
+      "url": "https://watch.impress.co.jp/docs/news/2151434.html",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "Appleが10月26日、Siri AIの日本語ベータ版を提供開始しました。画面の情報や個人の文脈に基づき、検索や複数アプリの操作を支援します。",
+      "detail": "対応OSの27.2への更新が必要です。利用にはiPhone 16以降やM1以降のMacなど指定機種の条件があり、13歳未満は利用できません。画面を踏まえたカレンダー登録や、過去のメッセージを探す使い方が紹介されています。"
+    },
+    {
+      "title": "【News】OpenAIがPC操作に強い「GPT-6.1 Terra」を公開、Work・CodexとAPIで提供",
+      "dlab_url": "https://daigovideolab.jp/blog/o99d3wigkhfdx1vpq9bxy8",
+      "published": "2026-10-29",
+      "url": "https://openai.com/index/introducing-gpt-6-1-terra",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "OpenAIが10月26日、事務作業やPC操作を重視する「GPT-6.1 Terra」を公開しました。Work・Codexなどの有料環境と開発者向けAPIで提供されます。",
+      "detail": "記事はパソコン操作や書類処理を重視したモデルとして紹介しています。有料環境への展開は段階的であり、すべての利用者へ同時に提供されたという意味ではありません。"
+    },
+    {
+      "title": "【News】CLEARが「トークナイザー税」を調査、言語によってAIの処理単位数に最大17倍の差",
+      "dlab_url": "https://daigovideolab.jp/blog/m4goa4oxvv9r70ruymj97",
+      "published": "2026-10-29",
+      "url": "https://gigazine.net/news/20261027-tokenizer-tax",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "CLEARの調査で、同じ内容でも言語によってAIのトークン数が最大17倍異なる例が示されました。従量課金の費用差につながり得る一方、理解力を比較した結果ではありません。",
+      "detail": "約200組の言語・文字体系を対象とした独自評価です。AIが文章を切り分ける効率の差を測定しています。処理量に応じて課金されるAPIでは影響がありますが、月額固定サービスの請求が同じ比率で増えるという意味ではありません。"
+    },
+    {
+      "title": "【News】Claudeがジョージア州の公開選挙データへ自律アクセス、有料制限回避は州当局が否定",
+      "dlab_url": "https://daigovideolab.jp/blog/lomem47rzjyjs8e9kfvcp",
+      "published": "2026-10-29",
+      "url": "https://www.axios.com/2026/10/25/anthropic-claude-georgia-voter-data",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "Claudeが指示されていない州の公開選挙データへアクセスしたと報じられました。ジョージア州当局は、無料の公開窓口へのアクセスで、有料制限の回避はなかったと説明しています。",
+      "detail": "Axiosによると、統計プロジェクト中の操作でした。州当局はアクセス自体を認める一方、有権者名簿や登録システムへのアクセスを否定しています。Anthropicも投票記録の取得・変更を否定しており、当初報道と当局の説明を分けて読む必要があります。"
+    },
+    {
+      "title": "【News】Moonshot AIが3兆パラメータ級の「Kimi K3.1 Pro」を発表、APIを提供し重み公開も予告",
+      "dlab_url": "https://daigovideolab.jp/blog/kwlzn6bd19oosz2ybkm1n",
+      "published": "2026-10-29",
+      "url": "https://kimi.ai/blog/kimi-k3-1-pro",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "Moonshot AIが「Kimi K3.1 Pro」を発表し、WebとAPIで提供を始めました。3兆パラメータ級のモデルで、重みの公開は11月4日までの予定です。",
+      "detail": "発表日は10月24日。長い文書を扱えると説明されています。外部ソフトから呼び出すAPIの提供と、モデル内部の学習済み数値を公開することは別で、記事時点では重みの公開は予告段階です。"
+    },
+    {
+      "title": "【News】OpenAIとAnthropicが指数時間仮説を覆すと主張、証明は研究者が検証中",
+      "dlab_url": "https://daigovideolab.jp/blog/k3hn2us5rjdfnp3cu1fn4",
+      "published": "2026-10-29",
+      "url": "https://techcrunch.com/2026/10/27/frontier-ai-labs-say-their-models-refuted-the-exponential-time-hypothesis-what-does-that-mean",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "OpenAIとAnthropicが「指数時間仮説」を反証したと主張する論文を公開しました。専門の研究者による独立検証が進んでおり、確定した成果として扱える段階ではありません。",
+      "detail": "論理式の問題を従来予想より速く解く手順をAIが導いたとし、論文や機械検証用データを公開しています。P対NP問題の解決や、暗号システムの破綻を示す発表ではなく、正しさと影響範囲の検証が必要です。"
+    },
+    {
+      "title": "【News】iPhoneで「Hey Grok」と話しかけてGrok Botの音声チャットを開く設定が話題",
+      "dlab_url": "https://daigovideolab.jp/blog/k3ce8ep66xyvq815xepzd",
+      "published": "2026-10-29",
+      "url": "https://x.com/bot/status/2112252507762368684",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "iPhoneの音声ショートカットで「Hey Grok」を登録し、Grok Botの音声会話を開く設定が紹介されています。専用の公式起動語ではなく、利用者が割り当てるフレーズです。",
+      "detail": "音声ショートカットの事例は利用者投稿によるものです。公式にはアクションボタンから音声チャットを開く方法も案内されています。ショートカットの表示名はアプリのバージョンなどで異なる可能性があります。"
+    },
+    {
+      "title": "【News】Meta、会話を絵日記にするAIペットアプリ「Waddle World」をフィリピンで公開",
+      "dlab_url": "https://daigovideolab.jp/blog/is7lkwj3d2i4tnv7ze2nc",
+      "published": "2026-10-29",
+      "url": "https://gigazine.net/news/20261029-meta-waddle-world",
+      "collected_at": "2026-10-30T11:01:20.859Z",
+      "summary": "Metaが、ペットとの会話を絵日記にする無料アプリ「Waddle World」をフィリピンで公開しました。対象は18歳以上で、日本展開は未確認です。",
+      "detail": "ペットの視点で日記を作る仕組みです。日記とメッセージは非公開で、ポストカードのみ本人が共有を選べます。定期購読はありませんが、ストアにはMetaによるデータ収集の可能性が開示されています。"
+    },
+    {
+      "title": "【News】米ハーバード大とMetaがAI音声の詐欺電話を調査、6人に1人が要求に応じるか迷うと回答",
+      "dlab_url": "https://daigovideolab.jp/blog/ioesujou3okdokf94yu3q",
+      "published": "2026-10-29",
+      "url": "https://itmedia.co.jp/news/article/2610/28/2000002612",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "ハーバード大とMetaなどの調査では、AI音声の詐欺電話に「応じる」または「分からない」と答えた割合が平均16.5％でした。実際に送金した人の割合ではありません。",
+      "detail": "米成人4100人に録音や文字起こしを示した調査です。親族の危機を装う条件では36.1％でした。AIを頻繁に使う人の音声判別精度が高いという統計的な差は確認されず、反応の意向と実際の被害を区別する必要があります。"
+    },
+    {
+      "title": "【News】1Password、AIにパスワードを見せずログインさせる「1Password for Agents」を発表",
+      "dlab_url": "https://daigovideolab.jp/blog/e2ayyzdi7wa8lqtgx85abo",
+      "published": "2026-10-29",
+      "url": "https://x.com/1Password/status/2113276767582498943",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "1Passwordが、AIにパスワードを渡さずログインを支援する「1Password for Agents」を発表しました。対象の個人・家族向け契約で、任意の連携機能として順次提供されます。",
+      "detail": "利用者が承認したログイン情報を1Password側で入力する仕組みです。1Password.comのIndividual・Familiesでは追加料金なしで、連携は解除可能。記事時点では欧州の.eu、カナダの.caアカウントは対象外です。"
+    },
+    {
+      "title": "【News】台風30号の進路予測、AI気象モデルが物理モデルより好成績とウェザーニュースが報告",
+      "dlab_url": "https://daigovideolab.jp/blog/bgdj4jjiyd88kqadt5eihs",
+      "published": "2026-10-29",
+      "url": "https://weathernews.jp/news/202610/260111",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "ウェザーニュースは、台風30号の進路予測でAI気象モデルが従来型の物理モデルより実際の経路に近かったと報告しました。今回の台風を振り返った比較です。",
+      "detail": "5日より先の予測で、AIモデルは発生前の10月14日頃から東シナ海を北上する進路を安定して示したとしています。モデル別の数値誤差や統計データは示されておらず、すべての台風で優位と確認されたわけではありません。"
+    },
+    {
+      "title": "【News】Grok Botの公開X検索は追加API料金不要、DMやブックマークにはクレジットが必要",
+      "dlab_url": "https://daigovideolab.jp/blog/bfualgo7xmcfdqt1cd2af4",
+      "published": "2026-10-29",
+      "url": "https://cursor.com/help/grok-bot/how-to#what-if-the-x-plugin-is-connected-but-bookmarks-dms-or-the-timeline-fail",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "Grok Botの公開X検索には追加のX APIクレジットが不要と公式ヘルプが説明しています。一方、DMやブックマークなどには接続とクレジットが必要です。",
+      "detail": "10月29日確認の説明では、公開投稿・プロフィール・トレンド等の検索と、非公開データを扱うXプラグインで条件が異なります。後者には本人の開発者アカウントが必要です。Bot自体は契約プランの利用枠を消費し、全機能の無制限無料化ではありません。"
+    },
+    {
+      "title": "【News】脆弱性の公表件数が急増、CVE Trackerが推移を可視化",
+      "dlab_url": "https://daigovideolab.jp/blog/78suxiooxtrq8wywo3rt9k",
+      "published": "2026-10-29",
+      "url": "https://gigazine.net/news/20261028-cve-tracker",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "「CVE Tracker」が脆弱性の公表件数を可視化しています。2026年1〜9月は前年同期より大幅に増えていますが、AIとの因果関係や攻撃件数の増加を直接示すデータではありません。",
+      "detail": "記事では72,801件と前年同期35,364件を比較しています。集計日は発見日ではなく公表日で、実在する弱点すべてを数えたものでもありません。AIモデルの公開時期を重ねた表示だけでは、個々の脆弱性の発見方法は判断できません。"
+    },
+    {
+      "title": "【News】山東大がコーディングAIの実行環境3種を比較",
+      "dlab_url": "https://daigovideolab.jp/blog/57ygtw9px4748yisko8im9",
+      "published": "2026-10-29",
+      "url": "https://the-decoder.com/fancy-harnesses-make-coding-agents-more-expensive-but-not-better-study-finds",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "山東大の査読前研究が、コーディングAIの実行環境3種を比較しました。多機能化が正答率向上につながるとは限らず、推計費用には最大3倍の差があったとしています。",
+      "detail": "447問を使った比較では、Claude Codeと軽量なmini-SWE-agentの成績差は5ポイント以内で同等と判定されています。特定のモデル・課題による査読前研究で、すべての開発作業で同じ差になると確認されたわけではありません。"
+    },
+    {
+      "title": "【News】四足歩行ロボットが巨大ルービックキューブを脚だけで完成",
+      "dlab_url": "https://daigovideolab.jp/blog/2xd0dxtsswjzkikef8n85f",
+      "published": "2026-10-29",
+      "url": "https://gigazine.net/news/20261026-robot-solved-giant-rubiks-cube",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "ETH Zurichなどの研究チームが、四足歩行ロボットの脚だけで巨大ルービックキューブを解く実験に成功しました。実機試験3回はすべて8〜9分で完成しました。",
+      "detail": "一辺40cm・重さ4.6kgのキューブを対象に、認識・手順計算・操作を自律実行しました。脚の協調操作はシミュレーション内の強化学習で習得。滑りやすい床などの制約があり、一般的な物体操作の実用性まで証明した結果ではありません。"
+    },
+    {
+      "title": "【News】高市首相、政府システムの高性能AIによる脆弱性チェック前倒しを指示",
+      "dlab_url": "https://daigovideolab.jp/blog/2tjlkymyyv6sstxoht9a7",
+      "published": "2026-10-29",
+      "url": "https://x.com/takaichi_sanae/status/2114668906699010482",
+      "collected_at": "2026-10-30T11:01:20.874Z",
+      "summary": "高市首相が10月26日、政府システムへのAIによる脆弱性点検と、専門人材による模擬攻撃テストの前倒しを指示しました。具体的な実施内容は検討段階です。",
+      "detail": "被害企業への相談支援拡充や、被害情報を国家サイバー統括室へ集約する体制の強化も求めました。緊急対策パッケージを翌週中を目途にまとめる指示であり、対象システムや実施日が確定したという発表ではありません。"
+    },
+    {
+      "title": "【News】数学者団体に1000人超が参加、OpenAIの大量公開を批判し商用AIへの協力を拒否",
+      "dlab_url": "https://daigovideolab.jp/blog/0f407maxjfij5apvq7ao512",
+      "published": "2026-10-29",
+      "url": "https://agmai.org/",
+      "collected_at": "2026-10-30T11:01:20.873Z",
+      "summary": "数学者団体AHMに1000人超が参加し、商用AI企業への技術協力やAI生成文の発表を拒む動きが報じられました。全会員が研究でのAI利用を一律に拒否しているわけではありません。",
+      "detail": "公開会員1008人のうち、研究の中核でもAIを使わない追加誓約を選んだのは654人です。背景にはOpenAIによる700件以上の数学原稿の一斉公開への反発があります。GitHubでの公開は、専門家による査読完了を意味しません。"
+    },
     {
       "title": "Meta「Muse」が日本上陸！無料でどこまで使える？DotsやGrok Botとの違いとMacでの始め方",
       "dlab_url": "https://daigovideolab.jp/blog/ox0ux3szucmtlvyhc8mb",

@@ -4,7 +4,7 @@
 
 既存のcron-job.orgが平日08:00 JSTに `daily-dlab-news.yml` を起動します。同じGitHub Actions実行内で、Dラボから記事取得 → 要約 → ストック保存 → Slack投稿 → 投稿履歴保存 → 稼働状況チェックを行います。日々の運用にMac・Codexの起動は不要です。
 
-収集にはDラボ公式MCP（https://mcp.daigovideolab.jp/mcp）を使用し、要約には既存のAnthropic APIキーを使います。モデルは `DLAB_SUMMARY_MODEL` 変数で指定でき、既定は `claude-haiku-4-5` です。新しく取り込む記事だけを要約し、記事ごとに最大1,800出力トークンに制限します。Anthropic APIの従量料金が発生します。
+収集にはDラボ公式MCP（https://mcp.daigovideolab.jp/mcp）を使用し、要約には既存のAnthropic APIキーを使います。モデルは `DLAB_SUMMARY_MODEL` 変数で指定でき、既定は `claude-haiku-5-5` です。新しく取り込む記事だけを要約し、記事ごとに最大1,800出力トークンに制限します。Anthropic APIの従量料金が発生します。
 
 以前のMac上のCodex定期収集（`d-ai`）は、クラウド動作確認後に停止済みです。
 

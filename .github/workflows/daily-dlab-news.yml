@@ -45,7 +45,7 @@ jobs:
           DLAB_MCP_TOKEN: ${{ secrets.DLAB_MCP_TOKEN }}
           DLAB_MCP_TOKEN_EXPIRES_AT: ${{ vars.DLAB_MCP_TOKEN_EXPIRES_AT }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DLAB_SUMMARY_MODEL: ${{ vars.DLAB_SUMMARY_MODEL || 'claude-haiku-4-5' }}
+          DLAB_SUMMARY_MODEL: ${{ vars.DLAB_SUMMARY_MODEL || 'claude-haiku-5-5' }}
         run: python dlab_news_collect.py
 
       - name: Persist collected stock

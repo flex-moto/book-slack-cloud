@@ -177,7 +177,7 @@ def main():
         print('::warning title=Dlab authentication::D-Lab authorization expires within 14 days; renew with scripts/dlab-cloud-login.py.')
     bank, added = collect(load_bank(), DLab(os.environ.get('DLAB_MCP_TOKEN', '').strip()),
                           os.environ.get('ANTHROPIC_API_KEY', '').strip(),
-                          os.environ.get('DLAB_SUMMARY_MODEL') or 'claude-haiku-4-5')
+                          os.environ.get('DLAB_SUMMARY_MODEL') or 'claude-haiku-5-5')
     save_json(BANK_PATH, bank)
     print(f'Cloud collection succeeded: added {added} articles; stock contains {len(bank["articles"])} articles.')
 

@@ -58,7 +58,7 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 
 本の投稿とは別に、**PICKLEBALL ONE GINZA SHIMBASHI のコート予約の空き枠を監視して Slack に通知する**機能も同梱しています。使わない場合は設定不要で、本の投稿には影響しません。
 
-- 監視対象: 平日（月〜金）の **19:00 / 20:00 開始**の枠、直近2週間以内
+- 監視対象: 平日（月〜金）の **19:00 / 20:00 開始**の枠と、土日の **9:00〜18:00 の全枠**（銀座のみ）、直近2週間以内
 - 仕組み: `monitor.py` が予約サイト（[reserva.be](https://reserva.be/pboneginza/reserve)）をヘッドレスブラウザ（Playwright）で読み取り、前回状態 `pickleball_state.json` と比較して**空きが出た／満席に戻った**変化があれば Slack に投稿します
 - ワークフロー: `.github/workflows/pickleball.yml`（`workflow_dispatch`）。定時実行は外部cron（cron-job.org）から **15分ごと**に `workflow_dispatch` API を叩く想定です
 - 状態管理: 変化検知後に `pickleball_state.json` を毎回コミットして前回状態を保持します

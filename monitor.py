@@ -2,7 +2,7 @@
 """
 PICKLEBALL ONE GINZA SHIMBASHI コート予約 空き監視スクリプト（常時稼働版）
 
-平日(月〜金)の 19:00 / 20:00 開始の枠について、直近2週間以内の空き状況を
+平日(月〜金)の 19:00 / 20:00 開始の枠と、土日の 9:00〜18:00 の全枠について、直近2週間以内の空き状況を
 予約サイトの内部API(AjaxSearch)から取得し、前回状態(state.json)と比較して
 変化があれば Slack(chat.postMessage) で通知する。
 
@@ -42,7 +42,9 @@ USER_AGENT = (
     "Chrome/126.0.0.0 Safari/537.36"
 )
 
-TARGET_TIMES = {"1900", "2000"}   # 19時・20時開始（=19〜21時）
+TARGET_TIMES = {"1900", "2000"}   # 平日: 19時・20時開始（=19〜21時）
+WEEKEND_FROM = "0900"             # 土日: 9:00以降に始まる全枠
+WEEKEND_TO = "1800"               # 土日: 18:00より前に始まる全枠（18:00開始は含まない）
 WINDOW_DAYS = 14                  # 直近2週間
 WEEKS_TO_SCAN = 2                 # 表示週 + 翌週
 STATE_FILE = os.path.join(os.path.dirname(__file__), "pickleball_state.json")
@@ -122,12 +124,14 @@ def scan_availability():
             total_avail += 1
             if len(day) != 8:
                 continue
-            if sttime not in TARGET_TIMES:
-                continue
             d = date(int(day[0:4]), int(day[4:6]), int(day[6:8]))
-            # 平日のみ / 直近2週間以内 / 過去でない
+            # 平日は19/20時開始、土日は9:00〜18:00の全枠
             if d.weekday() >= 5:
+                if not (WEEKEND_FROM <= sttime < WEEKEND_TO):
+                    continue
+            elif sttime not in TARGET_TIMES:
                 continue
+            # 直近2週間以内 / 過去でない
             delta = (d - today).days
             if delta < 0 or delta > WINDOW_DAYS:
                 continue
@@ -142,7 +146,7 @@ def scan_availability():
         seen_targets.add(target)
 
     print(f"[{datetime.now()}] scan: cells={total_cells} available={total_avail} "
-          f"target(19/20時・平日・2週間)={sorted(found)}", file=sys.stderr)
+          f"target(平日19/20時・土日9-18時・2週間)={sorted(found)}", file=sys.stderr)
     return found
 
 

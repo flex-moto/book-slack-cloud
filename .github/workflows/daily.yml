@@ -27,7 +27,9 @@ jobs:
         run: pip install --quiet -r requirements-book.txt
 
       - name: Validate book metadata
-        run: python -m unittest discover -s tests -p 'test_post_book.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_post_book.py' -v
+          python -m unittest discover -s tests -p 'test_slack_health.py' -v
 
       - name: Post a book
         env:
@@ -47,11 +49,13 @@ jobs:
         run: python post_book.py
 
       - name: Persist posted history
+        if: always()
         run: |
-          if [[ -n "$(git status --porcelain posted.log)" ]]; then
+          if [[ -n "$(git status --porcelain posted.log data/book_post_state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add posted.log
+            if [[ -f data/book_post_state.json ]]; then git add data/book_post_state.json; fi
             git commit -m "chore: update posted.log [skip ci]"
             bash .github/scripts/push-with-retry.sh
           fi

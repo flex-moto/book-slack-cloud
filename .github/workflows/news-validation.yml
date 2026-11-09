@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - 'slack_health.py'
+      - 'tests/test_slack_health.py'
       - 'dlab_news_*.py'
       - 'scripts/dlab-cloud-login.py'
       - 'tests/test_dlab_news*.py'
@@ -24,3 +26,4 @@ jobs:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -p 'test_dlab_news*.py' -v
       - run: python dlab_news_stock.py
+      - run: python -m unittest discover -s tests -p 'test_slack_health.py' -v

@@ -7,6 +7,7 @@ import os
 import random
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
+from slack_health import check_slack_auth, report_health
 from pathlib import Path
 
 from dlab_news_stock import BANK_PATH, JST, MAX_AGE_DAYS, ROOT, load_bank, save_json, timestamp
@@ -63,6 +64,7 @@ def slack_post(token, channel, text, thread_ts=None):
     with urllib.request.urlopen(req, timeout=30) as resp:
         result = json.loads(resp.read().decode('utf-8'))
     if not result.get('ok'):
+        report_health('dlab/secondary', 'chat.postMessage failed', error=True)
         raise RuntimeError(f"Slack API error: {result.get('error', 'unknown')}")
     return result
 
@@ -113,7 +115,11 @@ def main():
     state = load_state()
     token = None if args.dry_run else os.environ['SLACK_BOT_TOKEN_2']
     channel = os.environ.get('SLACK_CHANNEL_DLAB_NEWS') or 'C05KPV4DSLS'
+    if not args.dry_run:
+        check_slack_auth(token, 'dlab/secondary')
     post_news(bank, state, token, channel, args.dry_run)
+    if not args.dry_run:
+        report_health('dlab/secondary', 'Posting step completed; see post state for delivery status')
 
 
 if __name__ == '__main__':

@@ -103,5 +103,81 @@ class MetadataTests(unittest.TestCase):
                 self.assertIn(book['title'], slack.call_args.args[1]['text'])
 
 
+class DeliveryRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        root = Path(self.directory.name)
+        self.state_path = root / 'state.json'
+        self.history_path = root / 'posted.log'
+        self.targets = [
+            {'label': 'primary', 'token': 'fake-one', 'channel': 'C1'},
+            {'label': 'secondary', 'token': 'fake-two', 'channel': 'C2'},
+        ]
+        self.book = {'title': 'Test', 'author': '', 'desc': '', 'local_cover': '', 'remote_cover': ''}
+        for name, value in [('STATE_FILE', str(self.state_path)), ('HISTORY_FILE', str(self.history_path)), ('API_KEY', 'fake')]:
+            patcher = patch.object(post_book, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        for name, value in [('notify_targets', {'slack', 'wechat'}), ('collect_slack_targets', self.targets),
+                            ('choose_book', str(Path(post_book.DATA_DIR) / 'Books/test.md')),
+                            ('parse_note', self.book), ('generate_comment', 'saved comment')]:
+            patcher = patch.object(post_book, name, return_value=value)
+            setattr(self, name, patcher.start())
+            self.addCleanup(patcher.stop)
+
+    def test_secondary_failure_resumes_only_missing_targets(self):
+        with patch('post_book.check_slack_auth'), patch('post_book.post_to_target', side_effect=[None, SystemExit(1)]), patch('post_book.post_to_wechat') as wechat:
+            with self.assertRaises(SystemExit):
+                post_book.main()
+            wechat.assert_not_called()
+        self.assertEqual(json.loads(self.state_path.read_text())['sent'], ['primary'])
+        self.assertFalse(self.history_path.exists())
+        with patch('post_book.check_slack_auth') as auth, patch('post_book.post_to_target') as send, patch('post_book.post_to_wechat') as wechat:
+            post_book.main()
+            auth.assert_called_once_with('fake-two', 'book/secondary')
+            self.assertEqual(send.call_args.args[-1]['label'], 'secondary')
+            send.assert_called_once()
+            wechat.assert_called_once()
+        self.choose_book.assert_called_once()
+        self.generate_comment.assert_called_once()
+        self.assertTrue(json.loads(self.state_path.read_text())['complete'])
+        self.assertEqual(self.history_path.read_text(), 'Books/test.md\n')
+        with patch('post_book.check_slack_auth') as auth, patch('post_book.post_to_target') as send:
+            post_book.main()
+            auth.assert_not_called()
+            send.assert_not_called()
+
+    def test_invalid_auth_stops_before_selection_or_generation(self):
+        with patch('post_book.check_slack_auth', side_effect=RuntimeError('invalid_auth')), patch('post_book.post_to_target') as send:
+            with self.assertRaises(RuntimeError):
+                post_book.main()
+            send.assert_not_called()
+        self.choose_book.assert_not_called()
+        self.generate_comment.assert_not_called()
+        self.assertFalse(self.state_path.exists())
+        self.assertFalse(self.history_path.exists())
+
+    def test_wechat_failure_keeps_both_slack_successes(self):
+        with patch('post_book.check_slack_auth'), patch('post_book.post_to_target'), patch('post_book.post_to_wechat', side_effect=SystemExit(1)):
+            with self.assertRaises(SystemExit):
+                post_book.main()
+        with patch('post_book.check_slack_auth') as auth, patch('post_book.post_to_target') as send, patch('post_book.post_to_wechat') as wechat:
+            post_book.main()
+            auth.assert_not_called()
+            send.assert_not_called()
+            wechat.assert_called_once()
+
+    def test_changed_pending_channel_blocks_delivery(self):
+        with patch('post_book.check_slack_auth'), patch('post_book.post_to_target', side_effect=SystemExit(1)):
+            with self.assertRaises(SystemExit):
+                post_book.main()
+        self.targets[0]['channel'] = 'DIFFERENT'
+        with patch('post_book.check_slack_auth') as auth:
+            with self.assertRaises(SystemExit):
+                post_book.main()
+            auth.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

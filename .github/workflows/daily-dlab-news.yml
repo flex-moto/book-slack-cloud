@@ -36,6 +36,7 @@ jobs:
       - name: Validate news stock and posting logic
         run: |
           python -m unittest discover -s tests -p 'test_dlab_news*.py' -v
+          python -m unittest discover -s tests -p 'test_slack_health.py' -v
           python dlab_news_stock.py
 
       - name: Collect fresh articles in the cloud

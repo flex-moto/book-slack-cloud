@@ -13,6 +13,8 @@ import urllib.request
 
 import openpyxl
 
+from slack_health import check_slack_auth
+
 QUIZ_BANK_PATH = "data/quiz/quiz_bank.xlsx"
 POSTED_LOG_PATH = "quiz_posted.log"
 
@@ -143,6 +145,8 @@ def slack_post(token, channel, text, thread_ts=None):
 def main():
     token = os.environ["SLACK_BOT_TOKEN_2"]
     channel = os.environ["SLACK_CHANNEL_QUIZ"]
+
+    check_slack_auth(token, "quiz/secondary")
 
     articles = load_quiz_bank()
     posted_days = load_posted_days()

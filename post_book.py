@@ -23,6 +23,7 @@ AIで紹介コメントを付けて Slack / WeChat に投稿する。GitHub Acti
 
 import json
 import os
+from pathlib import Path
 import random
 import re
 import shutil
@@ -33,12 +34,15 @@ import urllib.parse
 import urllib.request
 import urllib.error
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+
+from slack_health import check_slack_auth, report_health
 
 import yaml
 
 BOT_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(BOT_DIR, "posted.log")
+STATE_FILE = os.path.join(BOT_DIR, "data/book_post_state.json")
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8").strip()
@@ -82,6 +86,7 @@ SUBDIRS = [
 
 def die(msg):
     print(f"[error] {msg}", file=sys.stderr)
+    report_health("book", "Posting failed; inspect the failed step", error=True)
     sys.exit(1)
 
 
@@ -173,11 +178,8 @@ def choose_book():
     candidates = [p for p in notes if rel[p] not in posted]
     if not candidates:
         candidates = notes
-        open(HISTORY_FILE, "w").close()
 
     chosen = random.choice(candidates)
-    with open(HISTORY_FILE, "a", encoding="utf-8") as f:
-        f.write(rel[chosen] + "\n")
     return chosen
 
 
@@ -477,28 +479,73 @@ def main():
     if "wechat" in requested_targets:
         print(f"[info] WeChat通知を有効化します（provider={os.environ.get('WECHAT_PROVIDER', 'wxpusher').strip().lower()}）")
 
-    path = choose_book()
-    b = parse_note(path)
-    print(f"[info] 選ばれた本: {b['title']}（{os.path.basename(os.path.dirname(path))}）")
-
-    comment = generate_comment(b["title"], b["author"], b["desc"])
-
-    # 表紙の webp→png 変換は1回だけ。各ワークスペースへは同じpngを個別アップロード。
-    png = ""
-    if b["local_cover"]:
-        png = webp_to_png(b["local_cover"])
-
-    try:
+    today = datetime.now(timezone(timedelta(hours=9))).date().isoformat()
+    state = json.loads(Path(STATE_FILE).read_text()) if Path(STATE_FILE).exists() else None
+    if state and state['complete'] and state['date'] == today:
+        report_health('book', 'Already completed today; skipped')
+        return
+    if state and not state['complete']:
+        expected = [t['label'] for t in slack_targets] + (['wechat'] if 'wechat' in requested_targets else [])
+        if expected != state['targets']:
+            die('未完了の投稿があります。通知先設定を元に戻すか、保存状態を確認してください')
         for target in slack_targets:
+            if target['channel'] != state['channels'][target['label']]:
+                die('未完了の投稿のチャンネル設定が変更されています。保存状態を確認してください')
+    pending = [t for t in slack_targets if not state or state['complete'] or t['label'] not in state['sent']]
+    for target in pending:
+        check_slack_auth(target['token'], 'book/' + target['label'])
+    if not state or state['complete']:
+        path = choose_book()
+        book = parse_note(path)
+        state = {
+            'date': today, 'path': os.path.relpath(path, DATA_DIR), 'book': book,
+            'history_before': Path(HISTORY_FILE).read_text(encoding='utf-8').splitlines() if Path(HISTORY_FILE).exists() else [],
+            'comment': generate_comment(book['title'], book['author'], book['desc']),
+            'targets': [t['label'] for t in slack_targets] + (['wechat'] if 'wechat' in requested_targets else []),
+            'channels': {t['label']: t['channel'] for t in slack_targets},
+            'sent': [], 'complete': False,
+        }
+        save_delivery_state(state)
+    b, comment = state['book'], state['comment']
+    png = webp_to_png(b['local_cover']) if pending and b['local_cover'] else ''
+    try:
+        for target in pending:
+            label = target['label']
+            report_health('book/' + label, 'Sending')
             post_to_target(b, comment, png, target)
-        if "wechat" in requested_targets:
+            state['sent'].append(label)
+            save_delivery_state(state)
+            report_health('book/' + label, 'Delivered')
+        if 'wechat' in state['targets'] and 'wechat' not in state['sent']:
             post_to_wechat(b, comment)
+            state['sent'].append('wechat')
+            save_delivery_state(state)
+            report_health('book/wechat', 'Delivered')
+        record_completed_book(state['path'], state['history_before'])
+        state['complete'] = True
+        save_delivery_state(state)
     finally:
+        report_health('book', 'Delivered targets: ' + (', '.join(state['sent']) or 'none'))
         if png:
-            try:
-                os.remove(png)
-            except OSError:
-                pass
+            Path(png).unlink(missing_ok=True)
+
+
+def save_delivery_state(state):
+    path = Path(STATE_FILE)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix('.tmp')
+    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    temporary.replace(path)
+
+
+def record_completed_book(relative_path, history_before):
+    path = Path(HISTORY_FILE)
+    posted = list(history_before)
+    # A fully consumed catalogue starts a new cycle only after delivery succeeds.
+    if relative_path in posted:
+        posted = []
+    posted.append(relative_path)
+    path.write_text('\n'.join(posted) + '\n', encoding='utf-8')
 
 
 if __name__ == "__main__":

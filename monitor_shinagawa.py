@@ -7,12 +7,9 @@ SEIBU FAST SPORTS FIELD（品川プリンスホテル）ピックルボール �
 前回状態(pickleball_shinagawa_state.json)と比較して変化があれば Slack へ通知する。
 
 方式:
-  TableCheck の空き検索グリッド(availability_v5/grid)は、orders を空にすると
-  施設全体（ゴルフブース含む）の空きを返すが、orders にメニュー
-  （[{menu_item_id, qty}]）を積むとそのメニューで予約可能な時刻だけを返す。
-  これを使い、対象日時ごとに grid を叩いて、リクエストした時刻が
-  data ([{t, a}]) に a=true で含まれるかで空きを判定する（カート作成は不要。
-  カートAPIはGitHubのIPだと is_request_enabled=false で拒否されるため使わない）。
+  予約画面と同じ availability_v5/grid にピックルボールコートの
+  カテゴリーを指定する。返された正確な時刻とカテゴリーを確認する。
+  レスポンス全体が空の場合は失敗として前回状態を保持する。
 
 実行間隔:
   ワークフロー自体は既存の15分毎cronに相乗りするが、30分間隔で十分なため
@@ -39,8 +36,8 @@ import requests
 RESERVE_PAGE_URL = "https://www.tablecheck.com/ja/seibu-fast-sports/reserve/menu"
 GRID_URL = "https://production-booking.tablecheck.com/v2/booking/availability_v5/grid"
 SHOP_SLUG = "seibu-fast-sports"
-# ピックルボール【平日】18:00~22:00 50分間 ¥11,000 のメニューID
-MENU_ITEM_ID = "69b23febef8de2d820d25791"
+# 予約画面のピックルボールコートカテゴリー
+COURT_CATEGORY_ID = "69b24a9e253d8783f0482c91"
 PAX_ADULT = 2
 
 TARGET_HOURS_JST = [19, 20]       # 19:00 / 20:00 開始
@@ -59,9 +56,9 @@ def _grid_body(session_ref, start_at_utc):
         "shop_id": SHOP_SLUG,
         "start_at": start_at_utc,
         "pax_adult": PAX_ADULT, "pax_senior": 0, "pax_child": 0, "pax_baby": 0,
-        "service_category_ids": [], "manual_duration": None, "voucher_ids": [],
+        "service_category_ids": [COURT_CATEGORY_ID], "manual_duration": None, "voucher_ids": [],
         "smoking": "none",
-        "orders": [{"menu_item_id": MENU_ITEM_ID, "qty": 1}],
+        "orders": [],
         "use_experience_page": False, "locale": "ja",
         "session_ref": session_ref,
     }
@@ -79,6 +76,7 @@ def scan_availability():
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "ja",
+        "Booking-Page-Version": "v2",
         "Origin": "https://www.tablecheck.com",
         "Referer": "https://www.tablecheck.com/",
     }
@@ -112,7 +110,9 @@ def scan_availability():
             for ent in data:
                 if not isinstance(ent, dict):
                     continue
-                if str(ent.get("t", "")).startswith(want_prefix) and ent.get("a"):
+                if (ent.get("t") == f"{want_prefix}:00:00Z"
+                        and ent.get("a") is True
+                        and ent.get("sc") == COURT_CATEGORY_ID):
                     found.add(f"{d.isoformat()} {hour:02d}:00")
                     break
             time.sleep(0.3)       # 行儀よく

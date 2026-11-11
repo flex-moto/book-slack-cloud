@@ -5,6 +5,7 @@ state_files=(
   pickleball_state.json
   pickleball_shinagawa_state.json
   pickleball_monthly_state.json
+  pickleball_reserve_one_state.json
 )
 
 if [[ -z "$(git status --porcelain -- "${state_files[@]}")" ]]; then

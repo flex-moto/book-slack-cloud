@@ -58,3 +58,27 @@ jobs:
 
       - name: Persist state
         run: .github/scripts/persist-pickleball-state.sh
+
+  reserve-one:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install browser and dependencies
+        run: |
+          pip install requests playwright==1.56.0
+          playwright install --with-deps chromium
+      - name: Check Reserve One
+        id: check
+        continue-on-error: true
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
+        run: python monitor_reserve_one.py
+      - name: Persist successful facility states
+        run: .github/scripts/persist-pickleball-state.sh
+      - name: Mark failed checks
+        if: steps.check.outcome == 'failure'
+        run: exit 1

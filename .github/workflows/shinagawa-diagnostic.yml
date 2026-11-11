@@ -1,0 +1,32 @@
+name: shinagawa-diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet requests
+      - name: Check Slack authentication without posting
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          token = os.environ.get('SLACK_BOT_TOKEN')
+          if not token:
+              raise SystemExit('Slack token missing')
+          response = requests.post('https://slack.com/api/auth.test', headers={'Authorization': 'Bearer ' + token}, timeout=20)
+          response.raise_for_status()
+          result = response.json()
+          if not result.get('ok'):
+              raise SystemExit('Slack auth failed: ' + str(result.get('error')))
+          print('Slack auth.test succeeded; no message was posted')
+          PY
+      - name: Check Shinagawa availability without posting or changing state
+        run: python -c 'import monitor_shinagawa; monitor_shinagawa.scan_availability()'

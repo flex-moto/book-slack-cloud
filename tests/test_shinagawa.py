@@ -25,5 +25,23 @@ class ShinagawaFailureTests(unittest.TestCase):
             monitor.main()
         save.assert_not_called()
 
+
+    @patch.object(monitor.time, "sleep")
+    @patch.object(monitor.requests, "Session")
+    def test_category_and_exact_time_are_required(self, session, sleep):
+        from datetime import date
+        response = session.return_value.post.return_value
+        response.json.return_value = {"availability_grid": {"data": [
+            {"t": "2026-11-12T10:00:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
+            {"t": "2026-11-12T11:00:00Z", "a": True, "sc": "other"},
+            {"t": "2026-11-12T11:30:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
+        ]}}
+        with patch.object(monitor, "date") as fake_date, patch.object(monitor, "WINDOW_DAYS", 0):
+            fake_date.today.return_value = date(2026, 11, 12)
+            self.assertEqual(monitor.scan_availability(), {"2026-11-12 19:00"})
+        body = session.return_value.post.call_args.kwargs["json"]
+        self.assertEqual(body["service_category_ids"], [monitor.COURT_CATEGORY_ID])
+        self.assertEqual(body["orders"], [])
+
 if __name__ == "__main__":
     unittest.main()

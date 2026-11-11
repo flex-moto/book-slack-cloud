@@ -2,7 +2,7 @@
 """
 SEIBU FAST SPORTS FIELD（品川プリンスホテル）ピックルボール 空き監視スクリプト
 
-平日(月〜金)の 19:00 / 20:00 開始の枠（夜メニュー 18:00~22:00 50分間）について、
+平日の19:00 / 20:00開始と、土日の12:00〜17:00開始の枠について、
 予約受付ウィンドウ内（約2週間）の空き状況を TableCheck のカート検証APIで確認し、
 前回状態(pickleball_shinagawa_state.json)と比較して変化があれば Slack へ通知する。
 
@@ -30,6 +30,7 @@ import sys
 import time
 import uuid
 from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -40,7 +41,8 @@ SHOP_SLUG = "seibu-fast-sports"
 COURT_CATEGORY_ID = "69b24a9e253d8783f0482c91"
 PAX_ADULT = 2
 
-TARGET_HOURS_JST = [19, 20]       # 19:00 / 20:00 開始
+TARGET_HOURS_JST = [19, 20]       # 平日
+WEEKEND_HOURS_JST = list(range(12, 18))  # 土日: 12:00〜17:00開始
 WINDOW_DAYS = 15                  # 受付ウィンドウ側で打ち切られるので広めでよい
 STATE_FILE = os.path.join(os.path.dirname(__file__),
                           "pickleball_shinagawa_state.json")
@@ -70,7 +72,7 @@ def _jst_to_utc_iso(d, hour_jst):
 
 
 def scan_availability():
-    """平日19/20時の空き枠を 'YYYY-MM-DD HH:MM' の集合で返す。"""
+    """対象の空き枠を 'YYYY-MM-DD HH:MM' の集合で返す。"""
     headers = {
         "User-Agent": USER_AGENT,
         "Content-Type": "application/json",
@@ -84,15 +86,14 @@ def scan_availability():
     s = requests.Session()
 
     found = set()
-    today = date.today()
+    today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
     checked = 0
     total_entries = 0   # 全レスポンス合計のdata件数（API遮断の検知用）
 
     for i in range(WINDOW_DAYS + 1):
         d = today + timedelta(days=i)
-        if d.weekday() >= 5:      # 平日のみ
-            continue
-        for hour in TARGET_HOURS_JST:
+        hours = WEEKEND_HOURS_JST if d.weekday() >= 5 else TARGET_HOURS_JST
+        for hour in hours:
             want_prefix = f"{d.isoformat()}T{hour - 9:02d}"   # UTCの YYYY-MM-DDTHH
             r = s.post(GRID_URL, headers=headers, timeout=30,
                        json=_grid_body(session_ref, _jst_to_utc_iso(d, hour)))

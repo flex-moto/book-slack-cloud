@@ -60,7 +60,7 @@ jobs:
         run: .github/scripts/persist-pickleball-state.sh
 
   reserve-one:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

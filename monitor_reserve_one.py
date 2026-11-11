@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, date
+from datetime import datetime, date, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import requests
@@ -19,13 +19,21 @@ FACILITIES = {
 }
 
 def read_grid(page, courts):
+    # Select an alternate start if the target is already the initial day.
+    # Selecting an already-displayed range may use a client cache and emit no
+    # request, so require a fresh, independently verifiable range instead.
+    initial_target = bool(page.get_by_role('button', name='表示期間 12/19').count())
+    start_day = 18 if initial_target else 19
+    expected_from = f'2026-12-{start_day:02}'
+    day_label = f'2026年12月{start_day}日' + ('金曜日' if initial_target else '土曜日')
+    target_column = 1 if initial_target else 0
     page.get_by_role('button', name='表示期間').click()
     for _ in range(3):
-        if page.get_by_role('button', name='2026年12月19日土曜日').count():
+        if page.get_by_role('button', name=day_label).count():
             break
         page.get_by_role('button', name='Go to the Next Month').click()
-    with page.expect_response(lambda r: r.request.method == 'POST' and r.url == page.url and '"from":"2026-12-19"' in (r.request.post_data or ''), timeout=20000) as pending:
-        page.get_by_role('button', name='2026年12月19日土曜日').click()
+    with page.expect_response(lambda r: r.request.method == 'POST' and r.url == page.url and f'"from":"{expected_from}"' in (r.request.post_data or ''), timeout=20000) as pending:
+        page.get_by_role('button', name=day_label).click()
     response = pending.value
     if response.status != 200:
         raise ValueError('availability request failed')
@@ -34,25 +42,29 @@ def read_grid(page, courts):
     result = next((line[2:] for line in lines if line.startswith('1:')), None)
     if result is None or not isinstance(json.loads(result), list):
         raise ValueError('unexpected availability response')
-    page.get_by_role('button', name='表示期間 12/19').wait_for(timeout=15000)
+    page.get_by_role('button', name=f'表示期間 12/{start_day}').wait_for(timeout=15000)
     page.get_by_text('空き状況を読み込んでいます…').wait_for(state='hidden', timeout=15000)
-    data = page.evaluate('''() => {
+    data = page.evaluate(r'''() => {
       const tables = [...document.querySelectorAll('table')];
       const header = tables.find(t => t.querySelector('thead') && t.innerText.includes('時間'));
       const grid = tables.find(t => t.querySelector('tbody tr td') && !t.querySelector('thead'));
       if (!header || !grid) throw Error('calendar tables missing');
       const names = [...header.querySelectorAll('thead tr')].at(-1).querySelectorAll('th,td');
       const rows = [...grid.querySelectorAll('tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(td => ({text: td.innerText.trim(), labels:[...td.querySelectorAll('[aria-label]')].map(x=>x.getAttribute('aria-label')), title:td.querySelector('[title]')?.getAttribute('title') || ''})));
-      return {names:[...names].map(x=>x.innerText.trim()), rows};
+      const dates = [...header.querySelectorAll('thead tr:first-child th')].slice(1).map(x=>x.innerText.replace(/\s+/g,''));
+      return {names:[...names].map(x=>x.innerText.trim()), dates, rows};
     }''')
-    if data['names'][1:1+len(courts)] != courts:
+    if len(data['dates']) != 7 or data['dates'][target_column] != '土19':
+        raise ValueError('target date missing from calendar header: ' + repr(data['dates']))
+    first_column = 1 + target_column * len(courts)
+    if data['names'][first_column:first_column+len(courts)] != courts:
         raise ValueError('unexpected court headers: ' + repr(data['names'][:1+len(courts)]))
     slots = {}
     for row in data['rows']:
-        if len(row) < len(courts)+1 or not row[0]['text']:
+        if len(row) < first_column+len(courts) or not row[0]['text']:
             raise ValueError('incomplete row')
         time = row[0]['text'].replace(' ', '')
-        for court, cell in zip(courts, row[1:1+len(courts)]):
+        for court, cell in zip(courts, row[first_column:first_column+len(courts)]):
             content = ' '.join(cell['labels']) + ' ' + cell['title']
             if '空き枠' in content: status = 'available'
             elif '予約済' in content: status = 'booked'
@@ -63,6 +75,12 @@ def read_grid(page, courts):
         raise ValueError('unexpected calendar hours or count')
     return slots
 
+def eligible_slots(current, now):
+    if now.date() != TARGET:
+        return current
+    return {k: v for k, v in current.items()
+            if datetime.combine(TARGET, time.fromisoformat(k.split()[0]), JST) > now}
+
 def slack(text):
     token = os.environ['SLACK_BOT_TOKEN']
     r = requests.post('https://slack.com/api/chat.postMessage', headers={'Authorization': 'Bearer '+token}, json={'channel': os.getenv('SLACK_CHANNEL_PB') or 'C0BJ3ETJ1H7', 'text':text}, timeout=20)
@@ -72,7 +90,10 @@ def slack(text):
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--dry-run', action='store_true'); p.add_argument('--facility', choices=FACILITIES); args=p.parse_args()
     now=datetime.now(JST)
-    if now.date() > TARGET: return
+    # Last target slot begins at 21:00 JST; never report an already-started slot.
+    if now >= datetime.combine(TARGET, time(21), JST):
+        print('監視終了: 2026-12-19 21:00 JST')
+        return
     state=json.loads(STATE.read_text()) if STATE.exists() else {}
     errors=[]
     with sync_playwright() as pw:
@@ -85,6 +106,7 @@ def main():
                 page=browser.new_page(locale='ja-JP', timezone_id='Asia/Tokyo')
                 page.goto(url, wait_until='networkidle', timeout=45000)
                 current=read_grid(page,courts)
+                current=eligible_slots(current, now)
                 page.close()
                 print(name, json.dumps(current,ensure_ascii=False))
                 if args.dry_run: continue

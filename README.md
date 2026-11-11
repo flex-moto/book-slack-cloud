@@ -63,6 +63,12 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 - ワークフロー: `.github/workflows/pickleball.yml`（`workflow_dispatch`）。定時実行は外部cron（cron-job.org）から **15分ごと**に `workflow_dispatch` API を叩く想定です
 - 状態管理: 変化検知後に `pickleball_state.json` を毎回コミットして前回状態を保持します
 
+### 2026年12月19日の追加監視
+
+`monitor_reserve_one.py` は ASICS PICKLEBALL CONNECT と PICKLEBALL PARK TOYOSU の12月19日・7:00〜21:00開始枠を監視します。空き、予約済、予約不可を区別し、取得やSlack投稿が失敗した施設の状態を更新しません。予約開始予定にかかわらず実際の画面を確認します。対象日当日は既に開始した枠を通知対象から外し、最後の21:00開始枠が始まる**12月19日21:00 JST**に監視を終了します。外部cronの起動時刻や遅延により、終了直前の実行が保証されるわけではありません。
+
+予約画面の取得応答、表示日付、コート名と時間帯を検証します。取得できないときは空きなしとせず、Actionsを失敗にします。状態は `pickleball_reserve_one_state.json` に保存します。
+
 ### 設定（GitHub Secrets）
 
 | 種類 | 名前 | 必須 | 説明 |

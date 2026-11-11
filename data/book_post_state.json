@@ -151,7 +151,9 @@
     "secondary": "C0BGPEC75B2"
   },
   "sent": [
-    "primary"
+    "primary",
+    "secondary",
+    "wechat"
   ],
-  "complete": false
+  "complete": true
 }

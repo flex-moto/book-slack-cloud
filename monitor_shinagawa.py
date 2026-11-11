@@ -151,8 +151,7 @@ def notify_slack(opened, filled):
     token = os.environ.get("SLACK_BOT_TOKEN")
     channel = os.environ.get("SLACK_CHANNEL_PB") or DEFAULT_CHANNEL
     if not token:
-        print("SLACK_BOT_TOKEN 未設定のため通知をスキップ", file=sys.stderr)
-        return
+        raise RuntimeError("SLACK_BOT_TOKEN 未設定のため通知できません")
     import urllib.request
 
     lines = ["🏓 ピックルボール品川(SEIBU FAST SPORTS) 空き枠アラート"]
@@ -172,7 +171,7 @@ def notify_slack(opened, filled):
     with urllib.request.urlopen(req, timeout=20) as r:
         resp = json.loads(r.read().decode("utf-8"))
     if not resp.get("ok"):
-        print(f"Slack投稿失敗: {resp.get('error')}", file=sys.stderr)
+        raise RuntimeError(f"Slack投稿失敗: {resp.get('error')}")
 
 
 def main():
@@ -187,7 +186,7 @@ def main():
     except Exception as e:
         print(f"[{datetime.now()}] 品川: 取得失敗のため通知・記録をスキップ: {e}",
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     previous = load_previous()
     opened = current - previous

@@ -43,6 +43,8 @@ jobs:
         run: python monitor.py
 
       - name: Run monitor (Shinagawa)
+        id: shinagawa
+        continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
@@ -57,7 +59,12 @@ jobs:
         run: python monitor_ginza_monthly.py
 
       - name: Persist state
+        if: always() && !cancelled()
         run: .github/scripts/persist-pickleball-state.sh
+
+      - name: Mark Shinagawa failure
+        if: always() && steps.shinagawa.outcome == 'failure'
+        run: exit 1
 
   reserve-one:
     runs-on: ubuntu-24.04

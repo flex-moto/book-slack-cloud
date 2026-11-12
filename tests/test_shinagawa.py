@@ -73,9 +73,10 @@ class ShinagawaFailureTests(unittest.TestCase):
         self.assertEqual(session.return_value.post.call_count, 6)
 
 
+    @patch.object(monitor, "record_rate_limit", return_value=1800000000)
     @patch.object(monitor.time, "sleep")
     @patch.object(monitor.requests, "Session")
-    def test_rate_limit_stops_without_retry(self, session, sleep):
+    def test_rate_limit_stops_without_retry(self, session, sleep, record):
         from datetime import datetime
         response = session.return_value.post.return_value
         response.status_code = 429
@@ -87,6 +88,19 @@ class ShinagawaFailureTests(unittest.TestCase):
                 monitor.scan_availability()
         self.assertEqual(session.return_value.post.call_count, 1)
         sleep.assert_not_called()
+        record.assert_called_once_with("120")
+
+    def test_rate_limit_cooldown_is_persisted_and_prevents_requests(self):
+        import json
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        with TemporaryDirectory() as directory, patch.object(monitor, 'RATE_LIMIT_FILE', str(Path(directory) / 'cooldown.json')), \
+             patch.object(monitor.time, 'time', return_value=1000), patch.object(monitor.requests, 'Session') as session:
+            self.assertEqual(monitor.record_rate_limit('3600'), 4600)
+            self.assertEqual(json.loads(Path(monitor.RATE_LIMIT_FILE).read_text())['until'], 4600)
+            with self.assertRaisesRegex(RuntimeError, '429待機中'):
+                monitor.scan_availability()
+            session.assert_not_called()
 
     @patch.object(monitor.time, "sleep")
     @patch.object(monitor.requests, "Session")

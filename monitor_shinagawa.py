@@ -33,6 +33,7 @@ import time
 import uuid
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
+from email.utils import parsedate_to_datetime
 
 import jpholiday
 import requests
@@ -52,6 +53,7 @@ JST = ZoneInfo("Asia/Tokyo")
 WINDOW_DAYS = 15                  # 受付ウィンドウ側で打ち切られるので広めでよい
 STATE_FILE = os.path.join(os.path.dirname(__file__),
                           "pickleball_shinagawa_state.json")
+RATE_LIMIT_FILE = os.path.join(os.path.dirname(__file__), "pickleball_shinagawa_cooldown.json")
 DEFAULT_CHANNEL = "C0BJ3ETJ1H7"   # #reservation
 WEEKDAYS_JP = ["月", "火", "水", "木", "金", "土", "日"]
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -97,8 +99,35 @@ def _jst_to_utc_iso(d, hour_jst):
     return f"{d.isoformat()}T{hour_jst - 9:02d}:00:00Z"
 
 
+def cooldown_until():
+    try:
+        with open(RATE_LIMIT_FILE, encoding="utf-8") as f:
+            return float(json.load(f).get("until", 0))
+    except FileNotFoundError:
+        return 0
+
+
+def record_rate_limit(retry_after):
+    now = time.time()
+    try:
+        delay = float(retry_after)
+    except (ValueError, TypeError):
+        try:
+            delay = parsedate_to_datetime(retry_after).timestamp() - now
+        except (ValueError, TypeError, OverflowError):
+            delay = 0
+    # Wait at least 30 minutes, and longer if the server requests it.
+    until = now + max(1800, delay)
+    with open(RATE_LIMIT_FILE, "w", encoding="utf-8") as f:
+        json.dump({"until": until}, f)
+    return until
+
+
 def scan_availability():
     """対象の空き枠を 'YYYY-MM-DD HH:MM' の集合で返す。"""
+    until = cooldown_until()
+    if time.time() < until:
+        raise RuntimeError(f"TableCheck の429待機中: {datetime.fromtimestamp(until, JST).isoformat()}まで")
     headers = {
         "User-Agent": USER_AGENT,
         "Content-Type": "application/json",
@@ -128,7 +157,9 @@ def scan_availability():
             r = s.post(GRID_URL, headers=headers, timeout=30,
                        json=_grid_body(session_ref, _jst_to_utc_iso(d, hour)))
             if r.status_code == 429:
-                raise RuntimeError(f"TableCheck HTTP 429; 再試行を停止 (Retry-After: {r.headers.get('Retry-After', '未提示')})")
+                retry_after = r.headers.get("Retry-After")
+                until = record_rate_limit(retry_after)
+                raise RuntimeError(f"TableCheck HTTP 429; 再試行を停止 (Retry-After: {retry_after or '未提示'}, 待機期限: {datetime.fromtimestamp(until, JST).isoformat()})")
             r.raise_for_status()
             data = (r.json().get("availability_grid") or {}).get("data")
             # TableCheck は日付/条件により data を list 以外で返すことがある
@@ -156,6 +187,9 @@ def scan_availability():
         # 全レスポンスが空 = API遮断や仕様変更の疑い。誤って「全滅」と
         # 記録して大量の🔴通知を出さないよう、このランは記録しない。
         raise RuntimeError(f"全{checked}リクエストでdataが空（API遮断/仕様変更の疑い）")
+    if until:
+        with open(RATE_LIMIT_FILE, "w", encoding="utf-8") as f:
+            json.dump({}, f)
     print(f"[{datetime.now()}] 品川scan: checked={checked} entries={total_entries} "
           f"空き={sorted(found)}", file=sys.stderr)
     return found

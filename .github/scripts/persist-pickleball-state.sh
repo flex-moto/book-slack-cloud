@@ -4,6 +4,7 @@ set -euo pipefail
 state_files=(
   pickleball_state.json
   pickleball_shinagawa_state.json
+  pickleball_shinagawa_cooldown.json
   pickleball_monthly_state.json
   pickleball_reserve_one_state.json
 )

@@ -37,6 +37,8 @@ jobs:
         run: pip install --quiet requests jpholiday==1.0.3
 
       - name: Run monitor
+        id: ginza
+        continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}   # 任意。未設定なら #reservation
@@ -52,6 +54,8 @@ jobs:
         run: python monitor_shinagawa.py
 
       - name: Run monthly opening scan (Ginza)
+        id: monthly
+        continue-on-error: true
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_PB: ${{ secrets.SLACK_CHANNEL_PB }}
@@ -62,8 +66,8 @@ jobs:
         if: always() && !cancelled()
         run: .github/scripts/persist-pickleball-state.sh
 
-      - name: Mark Shinagawa failure
-        if: always() && steps.shinagawa.outcome == 'failure'
+      - name: Mark monitoring failures
+        if: always() && (steps.ginza.outcome == 'failure' || steps.shinagawa.outcome == 'failure' || steps.monthly.outcome == 'failure')
         run: exit 1
 
   reserve-one:

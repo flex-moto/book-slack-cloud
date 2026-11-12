@@ -145,6 +145,8 @@ def scan_availability():
             break
         seen_targets.add(target)
 
+    if total_cells == 0:
+        raise RuntimeError("予約表の枠を取得できませんでした")
     print(f"[{datetime.now()}] scan: cells={total_cells} available={total_avail} "
           f"target(平日19/20時・土日9-18時・2週間)={sorted(found)}", file=sys.stderr)
     return found
@@ -174,8 +176,7 @@ def notify_slack(opened, filled):
     token = os.environ.get("SLACK_BOT_TOKEN")
     channel = os.environ.get("SLACK_CHANNEL_PB") or DEFAULT_CHANNEL
     if not token:
-        print("SLACK_BOT_TOKEN 未設定のため通知をスキップ", file=sys.stderr)
-        return
+        raise RuntimeError("SLACK_BOT_TOKEN 未設定のため通知できません")
     import urllib.request
 
     lines = ["🎾 ピックルボール銀座 空き枠アラート"]
@@ -201,7 +202,7 @@ def notify_slack(opened, filled):
         resp = json.loads(r.read().decode("utf-8"))
     if not resp.get("ok"):
         # not_in_channel などはログに残す（アプリを #reservation に招待要）
-        print(f"Slack投稿失敗: {resp.get('error')}", file=sys.stderr)
+        raise RuntimeError(f"Slack投稿失敗: {resp.get('error')}")
 
 
 def main():
@@ -211,7 +212,7 @@ def main():
         # 取得失敗時は状態を更新せず終了（取りこぼし・誤検知防止）
         print(f"[{datetime.now()}] 取得失敗のため通知・記録をスキップ: {e}",
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     previous = load_previous()
     opened = current - previous          # 満席→空き

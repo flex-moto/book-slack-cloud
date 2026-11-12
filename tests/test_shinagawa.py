@@ -37,7 +37,8 @@ class ShinagawaFailureTests(unittest.TestCase):
             {"t": "2026-11-12T11:30:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
         ]}}
         with patch.object(monitor, "datetime") as fake_datetime, patch.object(monitor, "WINDOW_DAYS", 0):
-            fake_datetime.now.return_value.date.return_value = date(2026, 11, 12)
+            fake_datetime.side_effect = __import__("datetime").datetime
+            fake_datetime.now.return_value = __import__("datetime").datetime(2026, 11, 12, 0, tzinfo=monitor.JST)
             self.assertEqual(monitor.scan_availability(), {"2026-11-12 19:00"})
         body = session.return_value.post.call_args.kwargs["json"]
         self.assertEqual(body["service_category_ids"], [monitor.COURT_CATEGORY_ID])
@@ -53,7 +54,8 @@ class ShinagawaFailureTests(unittest.TestCase):
             {"t": "2026-11-14T09:00:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
         ]}}
         with patch.object(monitor, "datetime") as clock, patch.object(monitor, "WINDOW_DAYS", 0):
-            clock.now.return_value.date.return_value = date(2026, 11, 14)
+            clock.side_effect = __import__("datetime").datetime
+            clock.now.return_value = __import__("datetime").datetime(2026, 11, 14, 0, tzinfo=monitor.JST)
             self.assertEqual(monitor.scan_availability(), {"2026-11-14 12:00", "2026-11-14 17:00"})
         self.assertEqual(session.return_value.post.call_count, 6)
 
@@ -65,9 +67,43 @@ class ShinagawaFailureTests(unittest.TestCase):
             {"t": "2026-11-23T03:00:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
         ]}}
         with patch.object(monitor, "datetime") as clock, patch.object(monitor, "WINDOW_DAYS", 0):
-            clock.now.return_value.date.return_value = date(2026, 11, 23)  # 勤労感謝の日(月)
+            clock.side_effect = __import__("datetime").datetime
+            clock.now.return_value = __import__("datetime").datetime(2026, 11, 23, 0, tzinfo=monitor.JST)
             self.assertEqual(monitor.scan_availability(), {"2026-11-23 12:00"})
         self.assertEqual(session.return_value.post.call_count, 6)
+
+
+    @patch.object(monitor.time, "sleep")
+    @patch.object(monitor.requests, "Session")
+    def test_rate_limit_stops_without_retry(self, session, sleep):
+        from datetime import datetime
+        response = session.return_value.post.return_value
+        response.status_code = 429
+        response.headers = {"Retry-After": "120"}
+        with patch.object(monitor, "datetime") as clock, patch.object(monitor, "WINDOW_DAYS", 0):
+            clock.side_effect = datetime
+            clock.now.return_value = datetime(2026, 11, 12, 0, tzinfo=monitor.JST)
+            with self.assertRaisesRegex(RuntimeError, "429.*120"):
+                monitor.scan_availability()
+        self.assertEqual(session.return_value.post.call_count, 1)
+        sleep.assert_not_called()
+
+    @patch.object(monitor.time, "sleep")
+    @patch.object(monitor.requests, "Session")
+    def test_only_open_future_slots_are_requested(self, session, sleep):
+        from datetime import datetime
+        response = session.return_value.post.return_value
+        response.json.return_value = {"availability_grid": {"data": [{"t":"other"}]}}
+        with patch.object(monitor, "datetime") as clock, patch.object(monitor, "WINDOW_DAYS", 15):
+            clock.side_effect = datetime
+            clock.now.return_value = datetime(2026, 11, 12, 19, 30, tzinfo=monitor.JST)
+            monitor.scan_availability()
+        bodies = [call.kwargs['json']['start_at'] for call in session.return_value.post.call_args_list]
+        self.assertNotIn('2026-11-12T10:00:00Z', bodies)
+        self.assertIn('2026-11-12T11:00:00Z', bodies)
+        self.assertIn('2026-11-26T10:00:00Z', bodies)
+        self.assertNotIn('2026-11-26T11:00:00Z', bodies)
+        self.assertFalse(any(x.startswith('2026-11-27') for x in bodies))
 
 
 class OpeningWindowTests(unittest.TestCase):

@@ -112,7 +112,8 @@ def scan_availability():
     s = requests.Session()
 
     found = set()
-    today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+    now_jst = datetime.now(JST)
+    today = now_jst.date()
     checked = 0
     total_entries = 0   # 全レスポンス合計のdata件数（API遮断の検知用）
 
@@ -120,9 +121,14 @@ def scan_availability():
         d = today + timedelta(days=i)
         hours = target_hours(d)
         for hour in hours:
+            slot_at = datetime(d.year, d.month, d.day, hour, tzinfo=JST)
+            if not now_jst < slot_at <= now_jst + BOOKING_LEAD:
+                continue
             want_prefix = f"{d.isoformat()}T{hour - 9:02d}"   # UTCの YYYY-MM-DDTHH
             r = s.post(GRID_URL, headers=headers, timeout=30,
                        json=_grid_body(session_ref, _jst_to_utc_iso(d, hour)))
+            if r.status_code == 429:
+                raise RuntimeError(f"TableCheck HTTP 429; 再試行を停止 (Retry-After: {r.headers.get('Retry-After', '未提示')})")
             r.raise_for_status()
             data = (r.json().get("availability_grid") or {}).get("data")
             # TableCheck は日付/条件により data を list 以外で返すことがある
@@ -142,7 +148,7 @@ def scan_availability():
                         and ent.get("sc") == COURT_CATEGORY_ID):
                     found.add(f"{d.isoformat()} {hour:02d}:00")
                     break
-            time.sleep(0.3)       # 行儀よく
+            time.sleep(1.5)       # APIへの負荷を抑える
 
     if checked == 0:
         raise RuntimeError("1件もチェックできなかった")
@@ -218,7 +224,9 @@ def main():
 
     previous = load_previous()
     opened = current - previous
-    filled = previous - current
+    now_jst = datetime.now(JST)
+    filled = {slot for slot in previous - current
+              if datetime.strptime(slot, "%Y-%m-%d %H:%M").replace(tzinfo=JST) > now_jst}
 
     if opened or filled:
         notify_slack(opened, filled)

@@ -62,6 +62,8 @@ def scan_next_month():
     for _ in range(6):                     # 最大6週ぶん
         data = monitor._fetch_week(session, target)
         html = data.get("table_html") or ""
+        if "cal-timeline__cell--data" not in html:
+            raise RuntimeError("月初スキャンで予約表の枠を取得できませんでした")
         for day, st in monitor._parse_available(html):
             if len(day) != 8 or st not in monitor.TARGET_TIMES:
                 continue
@@ -105,8 +107,7 @@ def notify(found, first):
     token = os.environ.get("SLACK_BOT_TOKEN")
     channel = os.environ.get("SLACK_CHANNEL_PB") or DEFAULT_CHANNEL
     if not token:
-        print("SLACK_BOT_TOKEN 未設定のため通知をスキップ", file=sys.stderr)
-        return
+        raise RuntimeError("SLACK_BOT_TOKEN 未設定のため通知できません")
     import urllib.request
 
     month_label = f"{first.month}月"
@@ -129,7 +130,7 @@ def notify(found, first):
     with urllib.request.urlopen(req, timeout=20) as r:
         resp = json.loads(r.read().decode("utf-8"))
     if not resp.get("ok"):
-        print(f"Slack投稿失敗: {resp.get('error')}", file=sys.stderr)
+        raise RuntimeError(f"Slack投稿失敗: {resp.get('error')}")
 
 
 def main():
@@ -169,7 +170,7 @@ def main():
     except Exception as e:
         print(f"[{jst_now()}] 月初スキャン失敗のため通知・記録をスキップ: {e}",
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     print(f"[{jst_now()}] 月初スキャン({ym}): {len(found)}枠 {sorted(found)}",
           file=sys.stderr)

@@ -37,6 +37,26 @@ class ReserveOneTest(unittest.TestCase):
             self.assertEqual(state.read_text(), before)
             slack.assert_not_called()
 
+    def test_lost_response_body_is_retried_with_fresh_page(self):
+        with TemporaryDirectory() as folder:
+            browser = MagicMock()
+            pw = MagicMock()
+            pw.chromium.launch.return_value = browser
+            context = MagicMock()
+            context.__enter__.return_value = pw
+            clock = MagicMock(wraps=datetime)
+            clock.now.return_value = datetime(2026, 11, 12, 12, tzinfo=monitor.JST)
+            with patch.object(monitor, 'STATE', Path(folder) / 'state.json'), \
+                 patch.object(monitor, 'datetime', clock), \
+                 patch.object(monitor, 'sync_playwright', return_value=context), \
+                 patch.object(monitor, 'read_grid', side_effect=[monitor.PlaywrightError('No data found for resource with given identifier'), {}]) as read, \
+                 patch.object(monitor.time_module, 'sleep'), patch.object(monitor, 'slack') as slack, \
+                 patch.object(sys, 'argv', ['monitor', '--facility', 'toyosu', '--dry-run']):
+                monitor.main()
+            self.assertEqual(read.call_count, 2)
+            self.assertEqual(browser.new_page.call_count, 2)
+            slack.assert_not_called()
+
     def test_stops_at_21_jst(self):
         fake_datetime = MagicMock(wraps=datetime)
         fake_datetime.now.return_value = datetime(2026, 12, 19, 21, tzinfo=monitor.JST)

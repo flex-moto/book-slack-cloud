@@ -4,11 +4,12 @@ import argparse
 import json
 import os
 import sys
+import time as time_module
 from datetime import datetime, date, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import requests
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error as PlaywrightError
 
 TARGET = date(2026, 12, 19)
 JST = ZoneInfo('Asia/Tokyo')
@@ -103,11 +104,20 @@ def main():
             if now < datetime.fromisoformat(opening):
                 print(f'{name}: 告知上の受付開始前 ({opening}); 実際の画面も確認')
             try:
-                page=browser.new_page(locale='ja-JP', timezone_id='Asia/Tokyo')
-                page.goto(url, wait_until='networkidle', timeout=45000)
-                current=read_grid(page,courts)
+                for attempt in range(2):
+                    page=browser.new_page(locale='ja-JP', timezone_id='Asia/Tokyo')
+                    try:
+                        page.goto(url, wait_until='networkidle', timeout=45000)
+                        current=read_grid(page,courts)
+                        break
+                    except PlaywrightError as exc:
+                        if attempt or 'No data found for resource with given identifier' not in str(exc):
+                            raise
+                        print(f'{name}: 応答本文が失われたため新しいページで1回再取得', file=sys.stderr)
+                        time_module.sleep(3)
+                    finally:
+                        page.close()
                 current=eligible_slots(current, now)
-                page.close()
                 print(name, json.dumps(current,ensure_ascii=False))
                 if args.dry_run: continue
                 old=state.get(key,{})

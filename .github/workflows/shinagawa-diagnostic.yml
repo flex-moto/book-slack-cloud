@@ -30,3 +30,11 @@ jobs:
           PY
       - name: Check Shinagawa availability without posting or changing state
         run: python -c 'import monitor_shinagawa; monitor_shinagawa.scan_availability()'
+      - name: Install Reserve One browser dependencies
+        if: always()
+        run: |
+          pip install playwright==1.56.0
+          playwright install --with-deps chromium
+      - name: Read Reserve One without posting or changing state
+        if: always()
+        run: python monitor_reserve_one.py --dry-run

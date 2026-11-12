@@ -1,7 +1,16 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-11-11T23:00:46.272834+00:00",
+  "last_checked_at": "2026-11-12T23:00:45.258710+00:00",
   "articles": [
+    {
+      "title": "AIへの音声ツール何がいい？Typeless・Aqua Voice・Spokenlyを使い分け検証！",
+      "dlab_url": "https://daigovideolab.jp/blog/963cp4n2pklm3i91ch4pm",
+      "published": "2026-11-12",
+      "url": "https://daigovideolab.jp/blog/963cp4n2pklm3i91ch4pm",
+      "summary": "Dラボのブログ記事。音声入力アプリTypeless・Aqua Voice・Spokenlyを比較し、使い分けを検証する内容。筆者は毎日1〜2時間音声入力を使い、Typelessの誤変換・余計な文の混入への不満からSpokenlyへの乗り換えを試みている。精度は公式主張のみで日本語の数値は未確認とされ、Spokenlyは自分のAPIキーで好きなモデルを選べる点が特徴として紹介されている。",
+      "detail": "対象は2026年11月12日公開のDラボ記事（種別：ブログ）。料金は2026年11月11日時点の各公式ページ確認値とされる。資料から確認できる内容：(1) Typelessは文を整える強み、Aqua Voiceは素の文に忠実な点が強みとX上の報告で紹介されている。(2) 筆者はTypelessとAqua Voiceの精度・誤変換・余計な文の混入に不満を持ち、Spokenlyを試している。(3) Spokenlyは自分のキーで好みのモデルを選べ、Proでも複数モデルから選択可能とされ、1日1時間使うと月1,000円以下との記載がある。(4) 応答速度はAqua Voiceがやや速いというのが筆者の体感。(5) 整形機能の仕組みは非公開と筆者は述べている。資料の要点は以上で、詳細な性能比較の数値は資料内では確認できない。",
+      "collected_at": "2026-11-12T23:00:45.258710+00:00"
+    },
     {
       "title": "【News】GoogleとMandiantが「LLMJacking」を分析、盗まれたAI利用権の転売で高額請求",
       "dlab_url": "https://daigovideolab.jp/blog/za4zyejw992e32y8shhpa",

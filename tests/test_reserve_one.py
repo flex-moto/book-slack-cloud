@@ -9,6 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import monitor_reserve_one as monitor
 
 class ReserveOneTest(unittest.TestCase):
+    def test_availability_response_formats_and_invalid_data(self):
+        monitor.validate_availability_response('0:{}\n1:[]\n')
+        monitor.validate_availability_response('0:{}\n1:{"reservations":[],"closures":[],"specialOpenings":[]}\n')
+        for body in ('0:{}', '1:{}', '1:{"reservations":[],"closures":[],"specialOpenings":null}'):
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                monitor.validate_availability_response(body)
+
     def test_expired_slots_are_not_reported(self):
         now = datetime(2026, 12, 19, 8, 0, tzinfo=monitor.JST)
         data = {'07:00 コートA': 'available', '08:00 コートA': 'available', '09:00 コートA': 'available'}

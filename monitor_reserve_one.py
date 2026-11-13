@@ -19,6 +19,17 @@ FACILITIES = {
     'toyosu': ('PICKLEBALL PARK TOYOSU', 'https://rsv.pickle-one.com/pb1-toyosu/menus/0197f0b2-71e4-743f-bc29-500600164401', '2026-12-01T09:00:00+09:00', ['コートA', 'コートB', 'コートC', 'コートD']),
 }
 
+def validate_availability_response(body):
+    result = next((line[2:] for line in body.splitlines() if line.startswith('1:')), None)
+    if result is None:
+        raise ValueError('unexpected availability response')
+    data = json.loads(result)
+    if isinstance(data, list):
+        return
+    if isinstance(data, dict) and all(isinstance(data.get(key), list) for key in ('reservations', 'closures', 'specialOpenings')):
+        return
+    raise ValueError('unexpected availability response')
+
 def read_grid(page, courts):
     # Select an alternate start if the target is already the initial day.
     # Selecting an already-displayed range may use a client cache and emit no
@@ -39,10 +50,7 @@ def read_grid(page, courts):
     if response.status != 200:
         raise ValueError('availability request failed')
     body = response.text()
-    lines = body.splitlines()
-    result = next((line[2:] for line in lines if line.startswith('1:')), None)
-    if result is None or not isinstance(json.loads(result), list):
-        raise ValueError('unexpected availability response')
+    validate_availability_response(body)
     page.get_by_role('button', name=f'表示期間 12/{start_day}').wait_for(timeout=15000)
     page.get_by_text('空き状況を読み込んでいます…').wait_for(state='hidden', timeout=15000)
     data = page.evaluate(r'''() => {

@@ -82,15 +82,15 @@
     "18:00 コートD": "booked",
     "19:00 コートA": "booked",
     "19:00 コートB": "booked",
-    "19:00 コートC": "booked",
+    "19:00 コートC": "available",
     "19:00 コートD": "booked",
     "20:00 コートA": "booked",
     "20:00 コートB": "booked",
-    "20:00 コートC": "booked",
+    "20:00 コートC": "available",
     "20:00 コートD": "booked",
     "21:00 コートA": "booked",
     "21:00 コートB": "booked",
-    "21:00 コートC": "booked",
+    "21:00 コートC": "available",
     "21:00 コートD": "booked"
   }
 }

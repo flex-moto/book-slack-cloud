@@ -89,7 +89,7 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で次�
 
 ## 今日のクイズ（dlab記事ベースのSlackクイズ）
 
-dlab（daigovideolab.jp）のブログ記事30本から作成した120問（4択×30記事）のクイズバンクを元に、**毎朝1記事分（4問）**を rechain-inc の `#今日のクイズ` へ自動投稿します。
+dlab（daigovideolab.jp）の最新ブログ記事30本（2026-10-29〜11-15のAIニュース）から作成した120問（4択×30記事）のクイズバンクを元に、**毎朝1記事分（4問）**を rechain-inc の `#今日のクイズ` へ自動投稿します。
 
 - `data/quiz/quiz_bank.xlsx` … クイズ本体（記事タイトル・URL・4択問題・正解）。`scripts/build_quiz_bank.py` を実行すると作り直せます。中身を直接Excelで編集してもOK（`quiz_post.py` はExcelを直接読みます）
 - `quiz_post.py` … 未投稿の記事を1つ選び、問題本文→スレッド返信で正解、の順にSlackへ投稿。全30記事を投稿し終えたら自動的に最初から繰り返します

@@ -46,6 +46,28 @@ class ShinagawaFailureTests(unittest.TestCase):
 
     @patch.object(monitor.time, "sleep")
     @patch.object(monitor.requests, "Session")
+    def test_retries_same_grid_request_after_timeout(self, session, sleep):
+        from datetime import datetime
+
+        post = session.return_value.post
+        response = post.return_value
+        response.status_code = 200
+        response.json.return_value = {"availability_grid": {"data": [
+            {"t": "2026-11-12T10:00:00Z", "a": True, "sc": monitor.COURT_CATEGORY_ID},
+        ]}}
+        post.side_effect = [monitor.requests.exceptions.ReadTimeout, response]
+        with patch.object(monitor, "datetime", wraps=datetime) as clock, \
+                patch.object(monitor, "WINDOW_DAYS", 0), \
+                patch.object(monitor, "target_hours", return_value=[19]), \
+                patch.object(monitor, "cooldown_until", return_value=0):
+            clock.now.return_value = datetime(2026, 11, 12, 0, tzinfo=monitor.JST)
+            self.assertEqual(monitor.scan_availability(), {"2026-11-12 19:00"})
+        self.assertEqual(post.call_count, 2)
+        self.assertEqual(post.call_args_list[0], post.call_args_list[1])
+        sleep.assert_any_call(3)
+
+    @patch.object(monitor.time, "sleep")
+    @patch.object(monitor.requests, "Session")
     def test_weekend_hours_and_18_excluded(self, session, sleep):
         from datetime import date
         session.return_value.post.return_value.json.return_value = {"availability_grid": {"data": [

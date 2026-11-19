@@ -154,8 +154,16 @@ def scan_availability():
             if not now_jst < slot_at <= now_jst + BOOKING_LEAD:
                 continue
             want_prefix = f"{d.isoformat()}T{hour - 9:02d}"   # UTCの YYYY-MM-DDTHH
-            r = s.post(GRID_URL, headers=headers, timeout=30,
-                       json=_grid_body(session_ref, _jst_to_utc_iso(d, hour)))
+            body = _grid_body(session_ref, _jst_to_utc_iso(d, hour))
+            for attempt in range(2):
+                try:
+                    r = s.post(GRID_URL, headers=headers, timeout=30, json=body)
+                    break
+                except requests.exceptions.Timeout:
+                    if attempt:
+                        raise
+                    print(f"品川: {d.isoformat()} {hour:02d}:00 の取得タイムアウト。1回再試行")
+                    time.sleep(3)
             if r.status_code == 429:
                 retry_after = r.headers.get("Retry-After")
                 until = record_rate_limit(retry_after)

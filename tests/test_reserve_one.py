@@ -44,25 +44,33 @@ class ReserveOneTest(unittest.TestCase):
             self.assertEqual(state.read_text(), before)
             slack.assert_not_called()
 
-    def test_lost_response_body_is_retried_with_fresh_page(self):
-        with TemporaryDirectory() as folder:
-            browser = MagicMock()
-            pw = MagicMock()
-            pw.chromium.launch.return_value = browser
-            context = MagicMock()
-            context.__enter__.return_value = pw
-            clock = MagicMock(wraps=datetime)
-            clock.now.return_value = datetime(2026, 11, 12, 12, tzinfo=monitor.JST)
-            with patch.object(monitor, 'STATE', Path(folder) / 'state.json'), \
-                 patch.object(monitor, 'datetime', clock), \
-                 patch.object(monitor, 'sync_playwright', return_value=context), \
-                 patch.object(monitor, 'read_grid', side_effect=[monitor.PlaywrightError('No data found for resource with given identifier'), {}]) as read, \
-                 patch.object(monitor.time_module, 'sleep'), patch.object(monitor, 'slack') as slack, \
-                 patch.object(sys, 'argv', ['monitor', '--facility', 'toyosu', '--dry-run']):
-                monitor.main()
-            self.assertEqual(read.call_count, 2)
-            self.assertEqual(browser.new_page.call_count, 2)
-            slack.assert_not_called()
+    def test_availability_body_is_read_from_route_before_browser_response(self):
+        page = MagicMock()
+        page.get_by_role.return_value.count.side_effect = [0, 1]
+        page.url = 'https://example.test/calendar'
+        route = MagicMock()
+        route.request.method = 'POST'
+        route.request.url = page.url
+        route.request.post_data = '{"from":"2026-12-19"}'
+        upstream = route.fetch.return_value
+        upstream.text.return_value = '0:{}\n1:[]\n'
+        browser_response = page.expect_response.return_value.__enter__.return_value.value
+        browser_response.status = 200
+        browser_response.text.side_effect = monitor.PlaywrightError('Body discarded')
+
+        def click():
+            if page.route.called:
+                page.route.call_args.args[1](route)
+
+        page.get_by_role.return_value.click.side_effect = click
+        with patch.object(monitor, 'validate_availability_response', side_effect=ValueError('checked')) as validate:
+            with self.assertRaisesRegex(ValueError, 'checked'):
+                monitor.read_grid(page, ['Aコート'])
+        validate.assert_called_once_with(upstream.text.return_value)
+        route.fulfill.assert_called_once_with(response=upstream)
+        upstream.dispose.assert_called_once()
+        browser_response.text.assert_not_called()
+        page.unroute.assert_called_once_with(*page.route.call_args.args)
 
     def test_stops_at_21_jst(self):
         fake_datetime = MagicMock(wraps=datetime)

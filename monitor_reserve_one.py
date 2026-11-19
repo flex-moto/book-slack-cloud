@@ -4,12 +4,11 @@ import argparse
 import json
 import os
 import sys
-import time as time_module
 from datetime import datetime, date, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import requests
-from playwright.sync_api import sync_playwright, Error as PlaywrightError
+from playwright.sync_api import sync_playwright, Error as PlaywrightError, TimeoutError as PlaywrightTimeout
 
 TARGET = date(2026, 12, 19)
 JST = ZoneInfo('Asia/Tokyo')
@@ -44,13 +43,45 @@ def read_grid(page, courts):
         if page.get_by_role('button', name=day_label).count():
             break
         page.get_by_role('button', name='Go to the Next Month').click()
-    with page.expect_response(lambda r: r.request.method == 'POST' and r.url == page.url and f'"from":"{expected_from}"' in (r.request.post_data or ''), timeout=20000) as pending:
-        page.get_by_role('button', name=day_label).click()
-    response = pending.value
-    if response.status != 200:
-        raise ValueError('availability request failed')
-    body = response.text()
-    validate_availability_response(body)
+    url = page.url
+
+    def is_availability_request(request):
+        return (request.method == 'POST' and request.url == url
+                and f'"from":"{expected_from}"' in (request.post_data or ''))
+
+    body = None
+    fetch_error = None
+
+    def capture_availability(route):
+        nonlocal body, fetch_error
+        if not is_availability_request(route.request):
+            route.continue_()
+            return
+        # Read the API response before Chromium can discard its network body.
+        try:
+            response = route.fetch(timeout=15000, max_redirects=0)
+            try:
+                body = response.text()
+                route.fulfill(response=response)
+            finally:
+                response.dispose()
+        except PlaywrightError as exc:
+            fetch_error = exc
+            route.abort()
+
+    page.route(url, capture_availability)
+    try:
+        with page.expect_response(lambda r: is_availability_request(r.request), timeout=20000) as pending:
+            page.get_by_role('button', name=day_label).click()
+        if pending.value.status != 200 or body is None:
+            raise ValueError(f'availability request failed (HTTP {pending.value.status})')
+        validate_availability_response(body)
+    except PlaywrightTimeout:
+        if fetch_error is not None:
+            raise fetch_error
+        raise
+    finally:
+        page.unroute(url, capture_availability)
     page.get_by_role('button', name=f'表示期間 12/{start_day}').wait_for(timeout=15000)
     page.get_by_text('空き状況を読み込んでいます…').wait_for(state='hidden', timeout=15000)
     data = page.evaluate(r'''() => {
@@ -112,19 +143,12 @@ def main():
             if now < datetime.fromisoformat(opening):
                 print(f'{name}: 告知上の受付開始前 ({opening}); 実際の画面も確認')
             try:
-                for attempt in range(2):
-                    page=browser.new_page(locale='ja-JP', timezone_id='Asia/Tokyo')
-                    try:
-                        page.goto(url, wait_until='networkidle', timeout=45000)
-                        current=read_grid(page,courts)
-                        break
-                    except PlaywrightError as exc:
-                        if attempt or 'No data found for resource with given identifier' not in str(exc):
-                            raise
-                        print(f'{name}: 応答本文が失われたため新しいページで1回再取得', file=sys.stderr)
-                        time_module.sleep(3)
-                    finally:
-                        page.close()
+                page=browser.new_page(locale='ja-JP', timezone_id='Asia/Tokyo')
+                try:
+                    page.goto(url, wait_until='networkidle', timeout=45000)
+                    current=read_grid(page,courts)
+                finally:
+                    page.close()
                 current=eligible_slots(current, now)
                 print(name, json.dumps(current,ensure_ascii=False))
                 if args.dry_run: continue

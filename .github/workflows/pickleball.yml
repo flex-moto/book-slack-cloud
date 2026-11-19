@@ -80,7 +80,17 @@ jobs:
       - name: Install browser and dependencies
         run: |
           pip install requests playwright==1.56.0
-          playwright install --with-deps chromium
+          playwright install --only-shell chromium
+          # Use the runner's existing libraries when Chromium can already launch.
+          if ! python - <<'PYTHON'
+          from playwright.sync_api import sync_playwright
+
+          with sync_playwright() as playwright:
+              playwright.chromium.launch().close()
+          PYTHON
+          then
+            playwright install-deps chromium
+          fi
       - name: Check Reserve One
         id: check
         continue-on-error: true

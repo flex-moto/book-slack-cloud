@@ -1,13 +1,13 @@
 {
-  "date": "2026-11-21",
-  "path": "Books/もういちど読む山川世界史.md",
+  "date": "2026-11-22",
+  "path": "Books/グラッサー博士の選択理論.md",
   "book": {
-    "title": "もういちど読む山川世界史",
-    "author": "「世界の歴史」編集委員会",
-    "publisher": "山川出版社",
-    "publish_date": "2009.8",
-    "desc": "世界のニュースの背景がわかる社会人の教科書",
-    "local_cover": "/home/runner/work/book-slack-cloud/book-slack-cloud/data/Books/covers/9784634640313.webp",
+    "title": "グラッサー博士の選択理論",
+    "author": "ウイリアムグラッサー",
+    "publisher": "",
+    "publish_date": "2000-04",
+    "desc": "夫婦・親子・教師と生徒・マネジャーと従業員との上質な人間関係のあり方を明解に説き明かす。",
+    "local_cover": "/home/runner/work/book-slack-cloud/book-slack-cloud/data/Books/covers/9784902222036.webp",
     "remote_cover": ""
   },
   "history_before": [
@@ -148,9 +148,10 @@
     "02_読書メモ/李白　ビギナーズ・クラシックス　中国の古典- 筧 久美子 and 谷口 広樹.md",
     "02_読書メモ/海賊とよばれた男（上）- 百田尚樹.md",
     "Books/賢帝の世紀 上.md",
-    "02_読書メモ/アメリカを作ったもの ～The American Saga～- ウィリアム　M　トワデル and 渡貫由美.md"
+    "02_読書メモ/アメリカを作ったもの ～The American Saga～- ウィリアム　M　トワデル and 渡貫由美.md",
+    "Books/もういちど読む山川世界史.md"
   ],
-  "comment": "高校で習ったはずなのに「あれ、これって何だっけ？」ってなる世界史、この一冊でスッキリ整理できます📖 ニュースで中東情勢や国際問題を見るたびに「背景がわからない…」ってモヤモヤしてた人には特におすすめ。大人になった今読むと、点と点がつながって教科書が一気に面白くなりますよ。",
+  "comment": "「相手を変えようとするほど関係がこじれるのはなぜ？」という問いに、この本はハッとする答えをくれます📖 夫婦も親子も職場も、人をコントロールしようとするクセを手放すと見える景色が変わる、という発想が新鮮で、身近な人間関係を見直したくなりますよ。",
   "targets": [
     "primary",
     "secondary",

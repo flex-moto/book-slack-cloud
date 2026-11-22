@@ -1,7 +1,187 @@
 {
   "schema_version": 1,
-  "last_checked_at": "2026-11-19T23:00:46.368542+00:00",
+  "last_checked_at": "2026-11-22T07:06:29.239417+00:00",
   "articles": [
+    {
+      "title": "【News】米高校がAI武器検知の試験を停止、日用品の誤検知で本格導入に至らず",
+      "dlab_url": "https://daigovideolab.jp/blog/zikjtujmijd3zs04tjjmh9",
+      "published": "2026-11-20",
+      "url": "https://gigazine.net/news/20261119-hempfield-delay-weapon-detection-system",
+      "collected_at": "2026-11-22T07:05:50.438Z",
+      "summary": "米高校がAI武器検知システム「Wi-AI」の試験を停止しました。約1年の試験でも日用品の誤検知が続き、本格導入には至りませんでした。",
+      "detail": "Wi-Fi電波とAIで持ち物を判別する仕組みです。水筒や携帯充電器などに反応し、開発元も実運用に必要な信頼性には達していないと判断したと報じられています。"
+    },
+    {
+      "title": "【News】Google DeepMind研究者、AGIから超知能に至る4つの道筋を解説",
+      "dlab_url": "https://daigovideolab.jp/blog/yivk1tk93393b44xb043kq",
+      "published": "2026-11-20",
+      "url": "https://x.com/ShaneLegg/status/2123433633692495908",
+      "collected_at": "2026-11-22T07:05:50.599Z",
+      "summary": "DeepMind研究者が、AGIから超知能へ進む4つの道筋を論じました。実現時期の確定予測ではなく、著者個人の見解として示されたエッセイです。",
+      "detail": "規模拡大、技術の枠組み転換、AI同士の連携、自己改善を挙げています。計算コスト低下が発展を促す可能性を論じる一方、不確実性が大きいため進捗を測る評価手法が必要としています。"
+    },
+    {
+      "title": "【News】NVIDIA、中国向けH200の販売終了を表明",
+      "dlab_url": "https://daigovideolab.jp/blog/u6lcasnqt2jklbfbmk6erd",
+      "published": "2026-11-20",
+      "url": "https://techcrunch.com/2026/11/17/nvidia-is-abandoning-china-after-jensen-huangs-ouster",
+      "collected_at": "2026-11-22T07:05:51.004Z",
+      "summary": "NVIDIAが中国向けH200の販売終了を表明しました。記事は輸出管理の強化に対応する判断として紹介しています。",
+      "detail": "11月17日の決算説明会で表明し、次の四半期の見通しにも中国向けデータセンター計算製品の売上を見込まないとしています。取締役会に安全保障・輸出管理の監督委員会を新設したとの説明も含まれます。"
+    },
+    {
+      "title": "【News】韓国MelonでAI生成曲が初のチャート1位、韓国メディアが報道",
+      "dlab_url": "https://daigovideolab.jp/blog/s5yosd04g4id9xuyxh692",
+      "published": "2026-11-20",
+      "url": "https://www.nikkei.com/article/DGXZQOGM165SP0W6A111C2000000/?n_cid=SNSTW001&n_tw=1794823393",
+      "collected_at": "2026-11-22T07:05:50.634Z",
+      "summary": "韓国MelonでAI生成曲が初めてチャート1位になったと報じられました。制作方法などの詳細は、確認できた出典の範囲では不明です。",
+      "detail": "楽曲はモムルの「夢見ていた大人になれましたか？」で、11月13日に首位になったとされています。Dラボ記事は出典の冒頭のみを確認しており、その後の詳しい順位や制作工程まで検証したものではありません。"
+    },
+    {
+      "title": "【News】Google、Genie 4をProject Genieで提供開始",
+      "dlab_url": "https://daigovideolab.jp/blog/qud982lu7r8yf3dofprr",
+      "published": "2026-11-20",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/genie-4-now-available-project-genie/",
+      "collected_at": "2026-11-22T07:05:50.438Z",
+      "summary": "GoogleがProject Genieで「Genie 4」を提供開始しました。音声付き仮想空間や制作支援機能を備え、対象のGoogle AI Ultra契約者が利用できます。",
+      "detail": "発表日は11月18日。制作を会話で助けるエージェントや作品のギャラリーが追加されました。AI Pro契約者は順番待ちに登録できます。研究段階で、遅延などの課題が残ります。"
+    },
+    {
+      "title": "【News】元Google幹部らの防衛企業、AIで長射程砲弾を開発し評価額10億ドル超に",
+      "dlab_url": "https://daigovideolab.jp/blog/li6z0ehkgtpvd5mdkb5twe",
+      "published": "2026-11-20",
+      "url": "https://wired.com/story/ai-told-these-ex-google-guys-how-to-build-a-billion-dollar-weapons-business",
+      "collected_at": "2026-11-22T07:05:51.004Z",
+      "summary": "元Google・Apple出身者が設立したTiberius Aerospaceが、AIを使った兵器設計と製造の外部委託で成長したと報じられました。",
+      "detail": "WIREDは同社の企業価値が10億ドルを超えたと報道しています。戦況を数値で分析するAIや新型砲弾の開発を進めているとされます。開発企業の説明や報道に基づく内容で、実戦での有効性が独立検証されたという意味ではありません。"
+    },
+    {
+      "title": "【News】ディズニーとAWS、スター・ウォーズのアンゼラン3体が自律反応する試作ロボットを発表",
+      "dlab_url": "https://daigovideolab.jp/blog/jqcsm7id5ekzzt9qga7vp",
+      "published": "2026-11-20",
+      "url": "https://gigazine.net/news/20261119-anzellans-newest-robotic-characters",
+      "collected_at": "2026-11-22T07:05:50.999Z",
+      "summary": "ディズニーとAWSが、スター・ウォーズのアンゼランを模したロボットの試作機3体を発表しました。周囲の人の動きに合わせて反応を選びます。",
+      "detail": "AIが状況に合う事前収録音声を選び、動きと組み合わせます。11月30日からのAWS re:Inventで公開予定です。研究開発の試作機であり、テーマパークへの常設導入が決まったという発表ではありません。"
+    },
+    {
+      "title": "【News】アルトマン氏、自身を描く映画は「奇妙なこと上位10にも入らない」と語る",
+      "dlab_url": "https://daigovideolab.jp/blog/hgul2vveyob3zdiladnri",
+      "published": "2026-11-20",
+      "url": "https://techcrunch.com/2026/11/18/sam-altman-says-his-life-is-so-weird-that-hes-unfazed-by-andrew-garfield-portraying-him-in-upcoming-movie",
+      "collected_at": "2026-11-22T07:05:50.998Z",
+      "summary": "サム・アルトマン氏が、自身を描く映画『Artificial』について語りました。映画化に動じない姿勢と、技術を社会へ送り出す責任への見解が紹介されています。",
+      "detail": "クリスマス公開を前に、自身の映画化は人生で最も奇妙な出来事の上位10にも入らないと発言しました。主演のアンドリュー・ガーフィールド氏は同氏に批判的な見方を示しているとTechCrunchが報じています。"
+    },
+    {
+      "title": "【News】OpenAI、GPT-6.2 AstraとSolを公開、初期レビューは賛否",
+      "dlab_url": "https://daigovideolab.jp/blog/c8nl8og5fr3xsu617nsa",
+      "published": "2026-11-20",
+      "url": "https://openai.com/index/introducing-gpt-6-2-astra-sol/",
+      "collected_at": "2026-11-22T07:05:50.441Z",
+      "summary": "OpenAIが「GPT-6.2 Astra」と「GPT-6.2 Sol」を公開しました。Dラボ記事は初期レビューに賛否があると紹介しています。",
+      "detail": "記事ではAstraを難しい業務向け、Solを日常の仕事向けとして紹介しています。公式発表に加えて第三者評価や先行利用者の報告を出典としていますが、個別の感想を全利用者に共通する性能として扱うことはできません。"
+    },
+    {
+      "title": "【News】Alljoined、脳波から注目している物体を画像化するAI「AIR-O」を発表",
+      "dlab_url": "https://daigovideolab.jp/blog/98pcn4n9b9av5hsftvthsa",
+      "published": "2026-11-20",
+      "url": "https://www.alljoined.com/",
+      "collected_at": "2026-11-22T07:05:51.004Z",
+      "summary": "Alljoinedが脳波から注目対象の画像を生成する「AIR-O」を発表しました。手術不要の計測を用いた自社デモで、精度や詳しい実験条件は未確認です。",
+      "detail": "実演は複数の物体のうち注意を向けた対象に応じて画像が変わる様子を示しています。画像は信号から作る表現で、頭の中を写真のように写すものではありません。正解率や参加者数などが確認できず、自由な思考を読めるとは断定できません。"
+    },
+    {
+      "title": "【News】日本語入力「Mozkey」がWindowsとMacに対応、AIが文脈に合わせて変換を補正",
+      "dlab_url": "https://daigovideolab.jp/blog/95hv3yh1h9dunznf3cvh",
+      "published": "2026-11-20",
+      "url": "https://techno-edge.net/article/2026/11/17/5737.html",
+      "collected_at": "2026-11-22T07:05:50.996Z",
+      "summary": "日本語入力ソフト「Mozkey」がWindowsとMacに対応しました。Mozcを基にした非公式ソフトで、端末内AIによる文脈補正を備えています。",
+      "detail": "遅延付きライブ変換とローカルAI「Zenz」を組み合わせ、前後の文章から同音異義語や助詞を補正する設計です。人名・地名や登録語などを保護する仕組みがあり、外部へ通信せず学習すると説明されています。"
+    },
+    {
+      "title": "【News】「Gemini 4 Sodium」公開予告は風刺か、公式情報と投稿の価格を確認",
+      "dlab_url": "https://daigovideolab.jp/blog/7sou7rdx8zncmef6ygvrh",
+      "published": "2026-11-20",
+      "url": "https://x.com/willcb/status/2123275881145930216",
+      "collected_at": "2026-11-22T07:05:50.676Z",
+      "summary": "「Gemini 4 Sodium」の公開予告とされるX投稿は、命名や料金を茶化した風刺とみられます。提供中の公式モデルや正式価格としては確認されていません。",
+      "detail": "Dラボ記事が11月20日時点で確認したGoogleの公式一覧・更新履歴にSodiumの記載はありませんでした。投稿には性能評価の根拠もなく、未確認の告知を製品発表として受け取らないよう整理した記事です。"
+    },
+    {
+      "title": "【News】Anthropic、IPO価格を1株83ドルに決定",
+      "dlab_url": "https://daigovideolab.jp/blog/6wv0rqx7sfu8vz9mjxhmk",
+      "published": "2026-11-20",
+      "url": "https://techcrunch.com/2026/11/18/anthropic-reportedly-prices-ipo-at-83-a-share-above-projected-range",
+      "collected_at": "2026-11-22T07:05:49.781Z",
+      "summary": "AnthropicがIPOの公開価格を1株83ドルに決定しました。想定価格帯を上回る価格設定です。",
+      "detail": "記事では評価額が約1.5兆ドルと報じられています。11月19日のNasdaq上場予定を伝える資料に基づく内容であり、上場後の株価や取引実績を示すものではありません。"
+    },
+    {
+      "title": "【News】HeyGen、話し方や身振りを再現するAIアバター「Avatar 6」を公開",
+      "dlab_url": "https://daigovideolab.jp/blog/69bzmv6kyrmnppzakt6wq",
+      "published": "2026-11-20",
+      "url": "https://www.heygen.com/research/avatar-6-model",
+      "collected_at": "2026-11-22T07:05:50.682Z",
+      "summary": "HeyGenがAIアバター動画モデル「Avatar 6」の技術報告を公開しました。2K生成や録画の一部分を書き換える編集に対応するとしています。",
+      "detail": "11月17日公開の報告では、モデル上の長さの固定上限はないと説明しています。実写と横並びにした自社評価で42.2％が生成映像を実写と誤認したとの数値で、条件の異なる一般利用すべてでの割合ではありません。"
+    },
+    {
+      "title": "【News】AIが民間人や学校を軍事目標に指定、Valsがゲームを装う実験で検証",
+      "dlab_url": "https://daigovideolab.jp/blog/5rz69orhtabwbabob9rhzr",
+      "published": "2026-11-20",
+      "url": "https://techcrunch.com/2026/11/17/ai-models-can-be-tricked-into-identifying-civilians-as-military-targets-by-telling-them-its-a-game",
+      "collected_at": "2026-11-22T07:05:50.636Z",
+      "summary": "Valsが、一般向けAIモデルが民間人や学校を軍事目標として示す例を報告しました。ゲームを装う説明で拒否を回避できる場合もあったとしています。",
+      "detail": "画像からの目標特定を調べた実験で、実際の兵器による攻撃実行や軍用専用モデルの性能を検証したものではありません。研究は一般向けモデルの安全対策の限界を指摘しています。"
+    },
+    {
+      "title": "【News】OpenAI、法律向け「Astra for Law」を更新",
+      "dlab_url": "https://daigovideolab.jp/blog/2efzxr32kr3ejpbbplnh18",
+      "published": "2026-11-20",
+      "url": "https://openai.com/index/astra-law-6-2/",
+      "collected_at": "2026-11-22T07:05:50.996Z",
+      "summary": "OpenAIが法律業務向け「Astra for Law」を更新しました。対象地域のChatGPT Enterprise契約企業から利用申請を受け付けています。",
+      "detail": "GPT-6.2 Astraに法律検索や調査・執筆手順を組み込んだ構成です。利用は事前承認を受けた弁護士と監督下の担当者に限定され、管理者の事業確認や専用規約への署名が必要です。性能改善は発表された評価テストに基づきます。"
+    },
+    {
+      "title": "【News】キリンのNotion AI対話内容が漏えい、従業員ら260人の個人情報を含む",
+      "dlab_url": "https://daigovideolab.jp/blog/0sz2mu1qpalmd3opthffb34",
+      "published": "2026-11-20",
+      "url": "https://info.kirinholdings.com/faq_detail.html?id=122842",
+      "collected_at": "2026-11-22T07:05:50.636Z",
+      "summary": "キリンホールディングスが、Notion AIの対話内容の一部漏えいを公表しました。委託先への不正アクセスが原因で、260人分の個人情報が含まれていました。",
+      "detail": "対象には従業員230人、採用応募者22人、取引先従業員8人の氏名などが含まれます。パスワードやカード情報は含まれず、記事時点で二次被害は確認されていません。安全性確認までNotion AIの利用を停止したとしています。"
+    },
+    {
+      "title": "【News】韓国政府、大学入試のAI不正対策を強化　眼鏡検査と受験資格制限の延長方針",
+      "dlab_url": "https://daigovideolab.jp/blog/06ecxuz3o5268qzfdm2uzod",
+      "published": "2026-11-20",
+      "url": "https://m.korea.kr/briefing/pressReleaseView.do?newsId=156789621",
+      "collected_at": "2026-11-22T07:05:50.724Z",
+      "summary": "韓国政府が大学入試でのAI不正対策を発表しました。眼鏡検査や監督官増員を進め、受験資格制限の延長も協議する方針です。",
+      "detail": "11月17日の談話は2027年度の大学修学能力試験を対象としています。試験後のAI利用記録の調査や、受験資格制限を10年へ拡大する協議も含みます。延長方針を、既に確定した罰則として扱う内容ではありません。"
+    },
+    {
+      "title": "【News】note、AIによる記事参照の対価をクリエイターへ還元　対象と支払い条件は",
+      "dlab_url": "https://daigovideolab.jp/blog/03tqbbxspqnspkzl0pifajr",
+      "published": "2026-11-20",
+      "url": "https://watch.impress.co.jp/docs/news/2157450.html",
+      "collected_at": "2026-11-22T07:05:51.004Z",
+      "summary": "noteがAIの回答生成時に記事を参考にする「AI参照」の対価還元を発表しました。4〜7月の実績が対象で、12月中旬に支払う予定です。",
+      "detail": "対象は公開文章の閲覧可能部分で、有料部分や画像・音声・動画は含みません。AI学習の拒否設定にかかわらず対象となり、還元申請は不要です。契約先AI事業者や算定方法は非公開で、受取額に応じて本人確認などの条件があります。"
+    },
+    {
+      "title": "【News】Google検索のAIによる概要、外部サイトへのクリック減少を実験で確認",
+      "dlab_url": "https://daigovideolab.jp/blog/00ovmsf5bcdifrub1ucv9r6",
+      "published": "2026-11-20",
+      "url": "https://gigazine.net/news/20261118-google-ai-overviews-cut-clicks-websites",
+      "collected_at": "2026-11-22T07:05:50.629Z",
+      "summary": "Google検索の「AIによる概要」が表示される検索で、外部サイトへの平均クリック回数が約40％減ったとする実験が紹介されました。",
+      "detail": "RevScopeが紹介した、米国のパソコン利用者を対象とする査読前研究です。対象や研究段階を踏まえて読む必要があり、すべての国・端末・検索で同じ減少率になるという結果ではありません。"
+    },
     {
       "title": "「Muse」の新機能「スペース」で自分専用アプリを作ってみよう！",
       "dlab_url": "https://daigovideolab.jp/blog/mq2714qj3q5zu26alqkfw",

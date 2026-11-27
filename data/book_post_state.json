@@ -1,14 +1,14 @@
 {
-  "date": "2026-11-27",
-  "path": "Books/キクタンTOEIC TEST SCORE 800.md",
+  "date": "2026-11-28",
+  "path": "02_読書メモ/ゼロから始めるObsidian〜AI時代の最強メモ習慣〜- 非エンジニアのためのAIハックまのっち.md",
   "book": {
-    "title": "改訂版キクタンTOEIC TEST SCORE 800",
-    "author": "一杉武史 編",
-    "publisher": "アルク",
-    "publish_date": "2016.6",
-    "desc": "新形式対応!「英語できます」のアピールに必須!全面改訂でパワーアップ!見出し語、フレーズ、例文を刷新!→最新傾向に対応。収録音声を大幅増量!→例文音声&4カ国発音収録。",
-    "local_cover": "/home/runner/work/book-slack-cloud/book-slack-cloud/data/Books/covers/9784757428171.webp",
-    "remote_cover": ""
+    "title": "ゼロから始めるObsidian〜AI時代の最強メモ習慣〜: 情報収集を「自動化」し、「書く」ことだけに集中する方法",
+    "author": "非エンジニアのためのAIハック|まのっち",
+    "publisher": "",
+    "publish_date": "",
+    "desc": "",
+    "local_cover": "",
+    "remote_cover": "https://m.media-amazon.com/images/I/81a0WRkq11L._SX1024.jpg"
   },
   "history_before": [
     "02_読書メモ/達人に学ぶSQL徹底指南書 第2版 初級者で終わりたくないあなたへ CodeZine BOOKS-ミック.md",
@@ -154,9 +154,10 @@
     "Books/転職の鬼100則.md",
     "Books/ヘルシープログラマ _ プログラミングを楽しく続けるための健康Hack.md",
     "02_読書メモ/SAP認定試験問題集 C_TS462_2022SAP認定試験対策シリーズ- スキルアップ講座.md",
-    "Books/ローマは一日にして成らず. 上.md"
+    "Books/ローマは一日にして成らず. 上.md",
+    "Books/キクタンTOEIC TEST SCORE 800.md"
   ],
-  "comment": "TOEIC800点を目指すなら、まずは単語力の底上げから！この一冊は見出し語もフレーズも最新傾向に刷新されていて、「リズムに乗って覚える」キクタン方式だから机に向かうのがちょっと苦手な人でも続けやすいんです📚 しかも例文音声は4カ国発音入りで、本番さながらのリスニング耳も自然と鍛えられますよ。",
+  "comment": "「あとで読む」で終わっていたメモが、つながって知識になる感覚ってちょっと感動なんですよね📒 Obsidianをゼロから始めたい人向けに、情報収集の自動化までカバーしてくれる一冊。非エンジニア目線で書かれてるので、「難しそう」と身構えてる人こそ手に取ってみてほしいです。",
   "targets": [
     "primary",
     "secondary",

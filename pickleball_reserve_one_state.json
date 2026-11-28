@@ -34,11 +34,11 @@
   "toyosu": {
     "07:00 コートA": "booked",
     "07:00 コートB": "available",
-    "07:00 コートC": "available",
+    "07:00 コートC": "booked",
     "07:00 コートD": "booked",
     "08:00 コートA": "booked",
     "08:00 コートB": "booked",
-    "08:00 コートC": "available",
+    "08:00 コートC": "booked",
     "08:00 コートD": "booked",
     "09:00 コートA": "booked",
     "09:00 コートB": "booked",
